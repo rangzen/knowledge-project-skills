@@ -7,9 +7,9 @@ description: >
   or wants to detect whether a previously ingested source has changed. "kps"
   is the short name for this project (Knowledge Project Skills) — also
   activate when the user says "kps ingestion" or "kps ingest".
-compatibility: Requires Python 3.11+
+compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.0"
+  version: "1.2"
   project: knowledge-project-skills
 ---
 
@@ -27,11 +27,15 @@ to the project.
 
 #### `add <path-or-url>`
 
-1. Assign a new `source-id`: read existing IDs from `sources/` and increment
-   (`src-001`, `src-002`, …). IDs are never reused.
+1. Assign a `source-id` slug:
+   - Derive a short kebab-case slug from the filename or URL
+     (e.g. `cairn-annual-report`, `privacy-policy-2024`).
+   - Keep it concise: 2–4 meaningful words, lowercase, hyphens only.
+   - Check uniqueness against existing directory names in `sources/`.
+   - If the slug already exists, append `-2`, `-3`, etc. until unique.
 2. Create `sources/<source-id>/`.
 3. Copy the file (or download the URL) into `sources/<source-id>/`.
-4. Run `scripts/ingest.py --source-id <source-id> --origin <path-or-url>`:
+4. Run `<skill-dir>/scripts/ingest.py --source-id <source-id> --origin <path-or-url>`:
    - Computes SHA-256 hash.
    - Detects type (`pdf`, `csv`, `url`, `db-dump`, `markdown`, `image`, `other`).
    - Reads page count for PDFs.
@@ -42,7 +46,7 @@ to the project.
 `.meta.json` schema:
 ```json
 {
-  "source_id": "src-001",
+  "source_id": "generated-source-slug",
   "origin": "<path-or-url>",
   "type": "pdf",
   "ingested_at": "<ISO datetime>",
@@ -64,7 +68,7 @@ For each directory in `sources/`, read `.meta.json` and print a table:
 #### `check-updates`
 
 For each source in `sources/`:
-1. Run `scripts/ingest.py --check-update --source-id <source-id>`.
+1. Run `<skill-dir>/scripts/ingest.py --check-update --source-id <source-id>`.
 2. The script recomputes the hash (or re-fetches for URLs) and compares to
    the stored hash.
 3. If changed: set `stale: true` in `.meta.json` and print a warning.
