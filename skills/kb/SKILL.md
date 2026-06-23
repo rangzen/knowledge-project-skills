@@ -9,9 +9,9 @@ description: >
   or wants to add a manually-curated page to the knowledge base. "kps" is
   the short name for this project (Knowledge Project Skills) — also activate
   when the user says "kps kb".
-compatibility: Requires Python 3.11+
+compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.0"
+  version: "1.2"
   project: knowledge-project-skills
 ---
 
@@ -32,7 +32,7 @@ Full rebuild from all extractions.
 
 Run:
 ```
-scripts/kb_build.py --mode build
+<skill-dir>/scripts/kb_build.py --mode build
 ```
 
 The script executes this pipeline in order:
@@ -57,7 +57,7 @@ Incremental rebuild. Only regenerates pages whose source extractions have a
 
 Run:
 ```
-scripts/kb_build.py --mode update
+<skill-dir>/scripts/kb_build.py --mode update
 ```
 
 #### `add-page <topic>`
@@ -82,11 +82,11 @@ pages:
     - title: "Large Language Model"
       file: concepts/large-language-model.md
       aliases: ["LLM", "language model"]
-      sources: [src-001, src-004]
+      sources: [annual-report-2024, prospectus-q1]
   people:
     - title: "Jane Smith"
       file: people/jane-smith.md
-      sources: [src-002]
+      sources: [annual-report-2024]
   organizations: []
   events: []
   topics: []
@@ -110,7 +110,7 @@ title: Jane Smith
 entity_type: person
 generated: true
 sources:
-  - src-002
+  - annual-report-2024
 last_built: 2026-06-21
 ---
 ```

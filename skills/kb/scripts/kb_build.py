@@ -1,0 +1,362 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+"""Build the knowledge base from extraction JSON files."""
+
+import argparse
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def project_root() -> Path:
+    p = Path.cwd()
+    while p != p.parent:
+        if (p / ".knowledge-project").exists():
+            return p
+        p = p.parent
+    raise SystemExit("No .knowledge-project found. Run /init first.")
+
+
+def slugify(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_]+", "-", text)
+    text = re.sub(r"-+", "-", text).strip("-")
+    return text
+
+
+def load_extractions(root: Path) -> list[dict]:
+    extractions = []
+    for path in sorted((root / "extractions").glob("*.json")):
+        if path.name.endswith(".failed.json"):
+            continue
+        try:
+            data = json.loads(path.read_text())
+            if data.get("schema_version") != "1":
+                print(f"Warning: skipping {path.name} — unknown schema_version", file=sys.stderr)
+                continue
+            extractions.append(data)
+        except Exception as e:
+            print(f"Warning: could not read {path.name}: {e}", file=sys.stderr)
+    return extractions
+
+
+def resolve_entities(extractions: list[dict]) -> list[dict]:
+    """Merge entities across extractions by canonical name (case-insensitive)."""
+    seen: dict[str, dict] = {}
+    for ext in extractions:
+        source_id = ext["source_id"]
+        for entity in ext.get("entities", []):
+            key = entity["name"].lower()
+            if key in seen:
+                if source_id not in seen[key]["_sources"]:
+                    seen[key]["_sources"].append(source_id)
+            else:
+                merged = dict(entity)
+                merged["_sources"] = [source_id]
+                merged.setdefault("aliases", [])
+                seen[key] = merged
+    return sorted(seen.values(), key=lambda e: e["name"].lower())
+
+
+def collect_key_facts(extractions: list[dict]) -> list[dict]:
+    facts = []
+    for ext in extractions:
+        for fact in ext.get("key_facts", []):
+            facts.append(fact)
+    return facts
+
+
+def entity_type_dir(entity_type: str) -> str:
+    mapping = {
+        "person": "people",
+        "organization": "organizations",
+        "place": "places",
+        "product": "products",
+        "concept": "concepts",
+        "event": "events",
+        "other": "other",
+    }
+    return mapping.get(entity_type, "other")
+
+
+def write_glossary(root: Path, entities: list[dict], mode: str) -> None:
+    glossary_path = root / "kb" / "glossary.md"
+    lines = [
+        "---",
+        "title: Glossary",
+        "generated: true",
+        f"last_built: {datetime.now(timezone.utc).date()}",
+        "---",
+        "",
+        "# Glossary",
+        "",
+    ]
+
+    current_letter = ""
+    for entity in entities:
+        first = entity["name"][0].upper()
+        if first != current_letter:
+            current_letter = first
+            lines.append(f"## {current_letter}")
+            lines.append("")
+
+        aliases = entity.get("aliases", [])
+        alias_str = f" _(also: {', '.join(aliases)})_" if aliases else ""
+        slug = slugify(entity["name"])
+        etype = entity_type_dir(entity["type"])
+        lines.append(f"### [[{entity['name']}]]{alias_str}")
+        lines.append("")
+        lines.append(entity["context"])
+        lines.append("")
+        sources = ", ".join(f"`{s}`" for s in entity["_sources"])
+        lines.append(f"_Sources: {sources} · [{entity['type']}]({etype}/{slug}.md)_")
+        lines.append("")
+
+    glossary_path.write_text("\n".join(lines))
+    print(f"  Written: kb/glossary.md ({len(entities)} entries)")
+
+
+def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
+    etype = entity_type_dir(entity["type"])
+    slug = slugify(entity["name"])
+    page_dir = root / "kb" / etype
+    page_dir.mkdir(parents=True, exist_ok=True)
+    page_path = page_dir / f"{slug}.md"
+
+    if page_path.exists():
+        text = page_path.read_text()
+        if "generated: false" in text or "manual: true" in text:
+            return page_path
+        if mode == "update":
+            match = re.search(r"last_built:\s*(\S+)", text)
+            if match:
+                last_built = match.group(1)
+                max_extracted = max(entity.get("_extracted_at", ""), last_built)
+                if max_extracted <= last_built:
+                    return page_path
+
+    aliases = entity.get("aliases", [])
+    alias_yaml = ""
+    if aliases:
+        alias_yaml = "\naliases:\n" + "\n".join(f"  - {a}" for a in aliases)
+
+    sources_yaml = "\n".join(f"  - {s}" for s in entity["_sources"])
+
+    content = (
+        f"---\n"
+        f"title: {entity['name']}\n"
+        f"entity_type: {entity['type']}\n"
+        f"generated: true{alias_yaml}\n"
+        f"sources:\n{sources_yaml}\n"
+        f"last_built: {datetime.now(timezone.utc).date()}\n"
+        f"---\n\n"
+        f"# {entity['name']}\n\n"
+        f"{entity['context']}\n\n"
+        f"**Type:** {entity['type']}  \n"
+        f"**Sources:** {', '.join(entity['_sources'])}\n"
+    )
+
+    if aliases:
+        content += f"\n**Also known as:** {', '.join(aliases)}\n"
+
+    page_path.write_text(content)
+    return page_path
+
+
+def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) -> None:
+    by_type: dict[str, list[dict]] = {}
+    for entity in entities:
+        by_type.setdefault(entity["type"], []).append(entity)
+
+    lines = [
+        "---",
+        "title: Knowledge Base Index",
+        "generated: true",
+        f"last_built: {datetime.now(timezone.utc).date()}",
+        "---",
+        "",
+        "# Knowledge Base",
+        "",
+        f"Built from {len(extractions)} source(s) · {len(entities)} entities",
+        "",
+        "## Entry points",
+        "",
+        "- [[Glossary]]",
+        "",
+        "## By type",
+        "",
+    ]
+
+    type_order = ["concept", "person", "organization", "place", "product", "event", "other"]
+    for etype in type_order:
+        if etype not in by_type:
+            continue
+        dir_name = entity_type_dir(etype)
+        lines.append(f"### {etype.capitalize()}s")
+        lines.append("")
+        for entity in sorted(by_type[etype], key=lambda e: e["name"].lower()):
+            slug = slugify(entity["name"])
+            lines.append(f"- [[{entity['name']}]]({dir_name}/{slug}.md)")
+        lines.append("")
+
+    (root / "kb" / "index.md").write_text("\n".join(lines))
+    print(f"  Written: kb/index.md")
+
+
+def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], key_facts: list[dict]) -> None:
+    gaps: dict[str, dict] = {}
+    for qfile in sorted((root / "kb" / "questions").glob("*.md")):
+        text = qfile.read_text()
+        fm_match = re.search(r"---\n(.*?)\n---", text, re.DOTALL)
+        if not fm_match:
+            continue
+        fm = fm_match.group(1)
+        conf_match = re.search(r"confidence:\s*(\S+)", fm)
+        topic_match = re.search(r"topic:\s*(.+)", fm)
+        if conf_match and topic_match:
+            conf = conf_match.group(1).strip('"\'')
+            topic = topic_match.group(1).strip('"\'')
+            if conf in ("low", "medium"):
+                if topic not in gaps:
+                    gaps[topic] = {"topic": topic, "question_count": 0, "max_confidence": conf}
+                gaps[topic]["question_count"] += 1
+
+    by_type: dict[str, list[dict]] = {}
+    for entity in entities:
+        by_type.setdefault(entity["type"], []).append(entity)
+
+    pages_yaml: dict[str, list[dict]] = {}
+    type_order = ["concept", "person", "organization", "place", "product", "event", "other"]
+    for etype in type_order:
+        dir_name = entity_type_dir(etype)
+        entries = []
+        for entity in sorted(by_type.get(etype, []), key=lambda e: e["name"].lower()):
+            slug = slugify(entity["name"])
+            entry = {
+                "title": entity["name"],
+                "file": f"{dir_name}/{slug}.md",
+                "sources": entity["_sources"],
+            }
+            if entity.get("aliases"):
+                entry["aliases"] = entity["aliases"]
+            entries.append(entry)
+        pages_yaml[f"{dir_name}"] = entries
+
+    index = {
+        "schema_version": "1",
+        "last_built": datetime.now(timezone.utc).isoformat(),
+        "source_count": len(extractions),
+        "entity_count": len(entities),
+        "glossary": "glossary.md",
+        "pages": pages_yaml,
+        "gaps": list(gaps.values()),
+    }
+
+    def to_yaml(obj, indent=0) -> str:
+        pad = "  " * indent
+        if isinstance(obj, dict):
+            lines = []
+            for k, v in obj.items():
+                if isinstance(v, (dict, list)):
+                    lines.append(f"{pad}{k}:")
+                    lines.append(to_yaml(v, indent + 1))
+                else:
+                    lines.append(f"{pad}{k}: {json.dumps(v)}")
+            return "\n".join(lines)
+        elif isinstance(obj, list):
+            if not obj:
+                return f"{pad}[]"
+            lines = []
+            for item in obj:
+                if isinstance(item, dict):
+                    first = True
+                    for k, v in item.items():
+                        prefix = f"{pad}- " if first else f"{pad}  "
+                        first = False
+                        if isinstance(v, list):
+                            lines.append(f"{prefix}{k}:")
+                            for vi in v:
+                                lines.append(f"{pad}    - {json.dumps(vi)}")
+                        else:
+                            lines.append(f"{prefix}{k}: {json.dumps(v)}")
+                else:
+                    lines.append(f"{pad}- {json.dumps(item)}")
+            return "\n".join(lines)
+        else:
+            return f"{pad}{json.dumps(obj)}"
+
+    yaml_text = to_yaml(index)
+    (root / "kb" / "index.yaml").write_text(yaml_text + "\n")
+    print(f"  Written: kb/index.yaml")
+
+
+def validate_wikilinks(root: Path) -> None:
+    kb = root / "kb"
+    broken = []
+    for md_file in kb.rglob("*.md"):
+        text = md_file.read_text()
+        for link in re.findall(r"\[\[([^\]]+)\]\]", text):
+            name = link.split("]")[0]
+            slug = slugify(name)
+            matches = list(kb.rglob(f"{slug}.md"))
+            if not matches and name.lower() not in ("glossary",):
+                broken.append((md_file.relative_to(root), name))
+    if broken:
+        print(f"\n  Warnings — broken wikilinks ({len(broken)}):")
+        for path, link in broken[:10]:
+            print(f"    {path}: [[{link}]]")
+        if len(broken) > 10:
+            print(f"    ... and {len(broken) - 10} more")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["build", "update"], default="build")
+    args = parser.parse_args()
+
+    root = project_root()
+    kb_dir = root / "kb"
+
+    extractions = load_extractions(root)
+    if not extractions:
+        print("No extractions found. Run /extract first.")
+        sys.exit(0)
+
+    for source_dir in sorted((root / "sources").iterdir()):
+        meta_path = source_dir / ".meta.json"
+        if meta_path.exists():
+            meta = json.loads(meta_path.read_text())
+            if not meta.get("extracted"):
+                print(f"Warning: {source_dir.name} has not been extracted yet.")
+
+    print(f"Building KB from {len(extractions)} extraction(s)...")
+
+    entities = resolve_entities(extractions)
+    key_facts = collect_key_facts(extractions)
+
+    for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
+        (kb_dir / etype).mkdir(parents=True, exist_ok=True)
+
+    write_glossary(root, entities, args.mode)
+
+    page_count = 0
+    for entity in entities:
+        write_entity_page(root, entity, args.mode)
+        page_count += 1
+    print(f"  Written: {page_count} entity pages")
+
+    write_index_md(root, entities, extractions)
+    write_index_yaml(root, entities, extractions, key_facts)
+    validate_wikilinks(root)
+
+    print(f"\nDone. {len(entities)} entities across {len(extractions)} source(s).")
+
+
+if __name__ == "__main__":
+    main()
