@@ -11,7 +11,7 @@ description: >
   when the user says "kps kb".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.2"
+  version: "1.3"
   project: knowledge-project-skills
 ---
 

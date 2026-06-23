@@ -110,7 +110,7 @@ def write_glossary(root: Path, entities: list[dict], mode: str) -> None:
         alias_str = f" _(also: {', '.join(aliases)})_" if aliases else ""
         slug = slugify(entity["name"])
         etype = entity_type_dir(entity["type"])
-        lines.append(f"### [[{entity['name']}]]{alias_str}")
+        lines.append(f"### [[{slug}|{entity['name']}]]{alias_str}")
         lines.append("")
         lines.append(entity["context"])
         lines.append("")
@@ -202,7 +202,7 @@ def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) ->
         lines.append("")
         for entity in sorted(by_type[etype], key=lambda e: e["name"].lower()):
             slug = slugify(entity["name"])
-            lines.append(f"- [[{entity['name']}]]({dir_name}/{slug}.md)")
+            lines.append(f"- [[{slug}|{entity['name']}]]")
         lines.append("")
 
     (root / "kb" / "index.md").write_text("\n".join(lines))
