@@ -9,7 +9,7 @@ description: >
   name for this project (Knowledge Project Skills) — also activate when
   the user says "kps init".
 metadata:
-  version: "1.0"
+  version: "1.2"
   project: knowledge-project-skills
 ---
 
@@ -24,14 +24,20 @@ knowledge project in the current directory.
 
 ### Steps
 
-**1. Check for existing project**
+**1. Check prerequisites**
+
+Run `uv --version`.
+- If the command fails or is not found: stop and tell the user to install uv
+  (`curl -LsSf https://astral.sh/uv/install.sh | sh`). Do not proceed.
+
+**2. Check for existing project**
 
 Read `.knowledge-project` in the current directory.
 - If it exists: warn the user and ask for confirmation before proceeding.
   Do not overwrite silently.
 - If it does not exist: proceed.
 
-**2. Create directories**
+**3. Create directories**
 
 ```
 sources/
@@ -40,7 +46,7 @@ kb/
 kb/questions/
 ```
 
-**3. Write `.knowledge-project`**
+**4. Write `.knowledge-project`**
 
 ```yaml
 name: <directory name, or --name value if provided>
@@ -48,7 +54,7 @@ schema_version: "1"
 created_at: <current ISO datetime>
 ```
 
-**4. Write `.gitignore`**
+**5. Write `.gitignore`**
 
 ```gitignore
 # Sensitive sources (add individually with /ingestion add --sensitive)
@@ -59,7 +65,7 @@ created_at: <current ISO datetime>
 
 If `--private-queries` was passed, uncomment the `kb/questions/` line.
 
-**5. Confirm to the user**
+**6. Confirm to the user**
 
 Print the directories created and the path to `.knowledge-project`.
 Suggest the next step: `/ingestion add <path-or-url>`.
