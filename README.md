@@ -12,7 +12,10 @@ output. When a skill ships scripts, they live in its `scripts/` directory and ar
 Python. Not every skill needs scripts; agent reasoning alone is sufficient for
 operations that are naturally conversational.
 
-[ai-research-os-workshop](https://github.com/iusztinpaul/ai-research-os-workshop) use very similar concepts so names are intentionally chosen to be compatible with that project's vocabulary.
+[AI Research OS](https://github.com/iusztinpaul/ai-research-os-workshop) uses very
+similar concepts, so names are intentionally chosen to be compatible with that
+project's vocabulary. It predates this project, and several conventions here
+(the skills scripts structure, for example) are borrowed from it.
 
 ---
 
