@@ -8,9 +8,9 @@ description: >
   or facts from a document, or needs to populate extractions/ before building
   the knowledge base. "kps" is the short name for this project (Knowledge
   Project Skills) — also activate when the user says "kps extract".
-compatibility: Requires Python 3.11+
+compatibility: Requires Python 3.11+ and uv (for PDF sources only)
 metadata:
-  version: "1.0"
+  version: "1.2"
   project: knowledge-project-skills
 ---
 
@@ -34,20 +34,31 @@ process, or asks to extract, analyze, or process a source document.
 
 **2. For each source, run the extraction pipeline**
 
+Read `sources/<source-id>/.meta.json` to determine the source type, then:
+
+**For PDF sources** — use the bundled helper to extract the text:
+
 ```
-scripts/extract.py --source-id <source-id> [--model <model>]
+uv run <skill-dir>/scripts/extract_pdf.py --source-id <source-id> [--force]
 ```
 
-The script:
-1. Reads `sources/<source-id>/.meta.json` to determine type.
-2. Parses the source file (PDF text, CSV rows, URL content, etc.).
-3. Chunks large sources and extracts each chunk independently.
-4. Calls the LLM at temperature=0 to extract structured data.
-5. Validates output against the extraction schema.
-6. Writes `extractions/<source-id>.json`.
-7. Sets `extracted: true` in `sources/<source-id>/.meta.json`.
-8. On failure: writes `extractions/<source-id>.failed.json` with the error
-   and timestamp. Never overwrites a successful extraction with a failure.
+The script prints a JSON header line (`source_id`, `source_ref`, `type`) then
+`---TEXT---` then the full page-by-page text. Use the text after `---TEXT---`
+as input to the extraction step below.
+
+**For all other source types** — read the source file directly from
+`sources/<source-id>/`.
+
+**Extract structured data:**
+
+Use the source content to produce the extraction JSON (schema below).
+For large sources, process in sections but produce a single merged JSON.
+
+**Write the results:**
+
+1. Write `extractions/<source-id>.json`.
+2. Set `extracted: true` in `sources/<source-id>/.meta.json`.
+3. On failure: do not write a partial JSON. Report the error to the user.
 
 **3. Report results**
 
@@ -91,7 +102,6 @@ full schema with examples.
 |---|---|
 | `--all` | Process all un-extracted sources |
 | `--force` | Re-extract even if `extractions/<source-id>.json` exists |
-| `--model <id>` | Override default model (default: `claude-sonnet-4-6`) |
 | `--missing-only` | Same as `--all` without `--force` (default behavior) |
 
 ---
@@ -99,7 +109,7 @@ full schema with examples.
 ### Edge cases
 
 - Source not ingested (no `.meta.json`): report error, suggest `/ingestion add`.
-- LLM context limit exceeded: the script chunks the source automatically.
-- Schema validation fails: write `.failed.json`, do not write a partial JSON.
-- `--all` with no un-extracted sources: confirm to the user that all sources
-  are up to date.
+- Script exits 0 with "Skipped" message (already extracted, no `--force`): treat as success, move on.
+- `extract_pdf.py` not found: the script ships with the extract skill at `scripts/extract_pdf.py` relative to this SKILL.md.
+- Non-PDF source: do not call the script; read the file directly.
+- `--all` with no un-extracted sources: confirm to the user that all sources are up to date.
