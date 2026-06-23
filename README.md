@@ -201,6 +201,22 @@ Skills follow the [Agent Skills](https://agentskills.io) open standard — each
 skill is a folder with a `SKILL.md` file, compatible with Claude Code, Cursor,
 Codex, Gemini CLI, and others.
 
+### Via skills.sh (recommended)
+
+Install directly using the [skills.sh](https://skills.sh) CLI:
+
+```bash
+npx skills add https://github.com/rangzen/knowledge-project-skills
+```
+
+To update later:
+
+```bash
+npx skills update
+```
+
+### Manual install
+
 Clone the repo and copy the skill folders into your agent's skills directory:
 
 ```bash
