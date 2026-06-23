@@ -7,6 +7,8 @@ description: >
   each question improves the next /kb build. Use when the user runs /query,
   asks a question about the project's sources or knowledge base, wants to find
   low-confidence gaps, or wants to explore past questions related to a topic.
+  "kps" is the short name for this project (Knowledge Project Skills) — also
+  activate when the user says "kps query".
 metadata:
   version: "1.0"
   project: knowledge-project-skills

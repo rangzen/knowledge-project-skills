@@ -4,7 +4,9 @@ description: >
   Add sources to a knowledge project, check for updates, and track provenance.
   Use when the user runs /ingestion, wants to add a PDF, URL, CSV, database dump,
   or any document to sources/, needs to check the status of ingested sources,
-  or wants to detect whether a previously ingested source has changed.
+  or wants to detect whether a previously ingested source has changed. "kps"
+  is the short name for this project (Knowledge Project Skills) — also
+  activate when the user says "kps ingestion" or "kps ingest".
 compatibility: Requires Python 3.11+
 metadata:
   version: "1.0"

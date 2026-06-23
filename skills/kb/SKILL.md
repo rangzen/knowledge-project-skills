@@ -6,7 +6,9 @@ description: >
   point), and kb/index.yaml (agent entry point). Reads kb/questions/ feedback
   to prioritize topics and surface extraction gaps. Use when the user runs /kb,
   wants to build or rebuild the KB, needs to generate the glossary or wiki pages,
-  or wants to add a manually-curated page to the knowledge base.
+  or wants to add a manually-curated page to the knowledge base. "kps" is
+  the short name for this project (Knowledge Project Skills) — also activate
+  when the user says "kps kb".
 compatibility: Requires Python 3.11+
 metadata:
   version: "1.0"

@@ -5,7 +5,9 @@ description: >
   extractions/, kb/, and kb/questions/ directories, writes .knowledge-project
   config, and generates .gitignore defaults. Use when the user runs /init,
   wants to start a new knowledge project, or needs to set up the directory
-  structure before adding sources or running extraction.
+  structure before adding sources or running extraction. "kps" is the short
+  name for this project (Knowledge Project Skills) — also activate when
+  the user says "kps init".
 metadata:
   version: "1.0"
   project: knowledge-project-skills

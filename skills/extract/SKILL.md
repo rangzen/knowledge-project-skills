@@ -6,7 +6,8 @@ description: >
   dates, schema (for structured sources), and images (for PDFs). Use when
   the user runs /extract, wants to process a source, asks to extract entities
   or facts from a document, or needs to populate extractions/ before building
-  the knowledge base.
+  the knowledge base. "kps" is the short name for this project (Knowledge
+  Project Skills) — also activate when the user says "kps extract".
 compatibility: Requires Python 3.11+
 metadata:
   version: "1.0"
