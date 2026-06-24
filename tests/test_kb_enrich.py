@@ -118,7 +118,7 @@ class TestRunEnrich:
 
     def test_open_gap_no_kb_page(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat")
+        _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
         run_enrich(root)
         out = capsys.readouterr().out
         assert "Open enrichment gaps" in out
@@ -126,7 +126,7 @@ class TestRunEnrich:
 
     def test_gap_with_thin_page_not_auto_cleared(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat")
+        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
         page_dir = root / "kb" / "concepts"
         page_dir.mkdir(parents=True)
         (page_dir / "combat.md").write_text(
@@ -137,7 +137,7 @@ class TestRunEnrich:
 
     def test_gap_with_enriched_page_is_auto_cleared(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat")
+        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
         page_dir = root / "kb" / "concepts"
         page_dir.mkdir(parents=True)
         (page_dir / "combat.md").write_text(

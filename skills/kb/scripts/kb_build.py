@@ -653,7 +653,7 @@ def run_enrich(root: Path) -> None:
         print("No enrichment gaps found.")
         return
 
-    cleared = [g for g in gaps if g["target"] and _page_has_body(root / "kb" / f"{g['target']}.md")]
+    cleared = [g for g in gaps if g["target"] and _page_has_body(root / "kb" / g["target"])]
     still_open = [g for g in gaps if g not in cleared]
 
     if cleared:
@@ -674,13 +674,13 @@ def run_enrich(root: Path) -> None:
         print(f"  Date:     {gap['date']}")
         print(f"  Question: {gap['question']}")
         if gap["target"]:
-            page_path = root / "kb" / f"{gap['target']}.md"
+            page_path = root / "kb" / gap["target"]
             if page_path.exists():
-                print(f"  Target:   kb/{gap['target']}.md (thin page, needs enrichment)")
+                print(f"  Target:   kb/{gap['target']} (thin page, needs enrichment)")
                 for src in _page_sources(page_path):
                     sources_to_reextract.setdefault(src, []).append(gap["target"])
             else:
-                print(f"  Target:   kb/{gap['target']}.md (page does not exist yet)")
+                print(f"  Target:   kb/{gap['target']} (page does not exist yet)")
         else:
             print(f"  Target:   (entity was never extracted -- no KB page exists)")
         print()
