@@ -168,7 +168,33 @@ def entity_type_dir(entity_type: str) -> str:
     return mapping.get(entity_type, "other")
 
 
-def write_glossary(root: Path, entities: list[dict], mode: str) -> None:
+_STUB_TEXT = "> Stub: no usable definition extracted. See sources for context."
+
+
+def _glossary_definition(entity: dict, facts: list[dict]) -> tuple[str, bool]:
+    """Return (definition_text, is_stub) applying summary/fact fallback logic."""
+    context = entity.get("context", "").strip()
+    summary = entity.get("summary", "").strip()
+
+    candidate = summary if (summary and len(summary) > len(context)) else context
+
+    def usable(text: str) -> bool:
+        return bool(text) and not text.startswith("#") and len(text) >= 30
+
+    if usable(candidate):
+        return candidate, False
+
+    name_lower = entity["name"].lower()
+    for fact in facts:
+        fact_text = fact.get("fact", "").strip()
+        if name_lower in fact_text.lower() and len(fact_text) >= 30:
+            return fact_text, False
+
+    return _STUB_TEXT, True
+
+
+def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict]) -> list[str]:
+    """Write glossary.md and return list of entity names that became stubs."""
     glossary_path = root / "kb" / "glossary.md"
     lines = [
         "---",
@@ -181,6 +207,7 @@ def write_glossary(root: Path, entities: list[dict], mode: str) -> None:
         "",
     ]
 
+    stubs: list[str] = []
     current_letter = ""
     for entity in entities:
         first = entity["name"][0].upper()
@@ -189,20 +216,25 @@ def write_glossary(root: Path, entities: list[dict], mode: str) -> None:
             lines.append(f"## {current_letter}")
             lines.append("")
 
+        definition, is_stub = _glossary_definition(entity, facts)
+        if is_stub:
+            stubs.append(entity["name"])
+
         aliases = entity.get("aliases", [])
         alias_str = f" _(also: {', '.join(aliases)})_" if aliases else ""
         slug = slugify(entity["name"])
         etype = entity_type_dir(entity["type"])
         lines.append(f"### [[{slug}|{entity['name']}]]{alias_str}")
         lines.append("")
-        lines.append(entity["context"])
+        lines.append(definition)
         lines.append("")
         sources = ", ".join(f"`{s}`" for s in entity["_sources"])
         lines.append(f"_Sources: {sources} · [{entity['type']}]({etype}/{slug}.md)_")
         lines.append("")
 
     glossary_path.write_text("\n".join(lines))
-    print(f"  Written: kb/glossary.md ({len(entities)} entries)")
+    print(f"  Written: kb/glossary.md ({len(entities)} entries, {len(stubs)} stub(s))")
+    return stubs
 
 
 def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
@@ -292,7 +324,7 @@ def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) ->
     print(f"  Written: kb/index.md")
 
 
-def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], key_facts: list[dict]) -> None:
+def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], key_facts: list[dict], stubs: list[str]) -> None:
     gaps: dict[str, dict] = {}
     for qfile in sorted((root / "kb" / "questions").glob("*.md")):
         text = qfile.read_text()
@@ -337,6 +369,7 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
         "source_count": len(extractions),
         "entity_count": len(entities),
         "glossary": "glossary.md",
+        "glossary_stubs": stubs,
         "pages": pages_yaml,
         "gaps": list(gaps.values()),
     }
@@ -457,7 +490,7 @@ def main():
     for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
         (kb_dir / etype).mkdir(parents=True, exist_ok=True)
 
-    write_glossary(root, entities, args.mode)
+    stubs = write_glossary(root, entities, args.mode, key_facts)
 
     page_count = 0
     for entity in entities:
@@ -466,7 +499,7 @@ def main():
     print(f"  Written: {page_count} entity pages")
 
     write_index_md(root, entities, extractions)
-    write_index_yaml(root, entities, extractions, key_facts)
+    write_index_yaml(root, entities, extractions, key_facts, stubs)
     validate_wikilinks(root)
 
     stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
