@@ -168,6 +168,33 @@ def entity_type_dir(entity_type: str) -> str:
     return mapping.get(entity_type, "other")
 
 
+def resolve_slugs(entities: list[dict]) -> list[tuple[str, list[str]]]:
+    """Assign globally unique slugs; disambiguate collisions by appending entity type.
+
+    Links use bare slugs. Slugs must be globally unique across all entity
+    subdirectories. Obsidian resolves [[slug]] links by basename; other consumers
+    must implement equivalent lookup.
+
+    Returns list of (base_slug, types) for each collision found.
+    """
+    slug_to_indices: dict[str, list[int]] = {}
+    for i, entity in enumerate(entities):
+        slug = slugify(entity["name"])
+        slug_to_indices.setdefault(slug, []).append(i)
+
+    collisions: list[tuple[str, list[str]]] = []
+    for slug, indices in slug_to_indices.items():
+        if len(indices) > 1:
+            types = [entities[i]["type"] for i in indices]
+            collisions.append((slug, types))
+            for i in indices:
+                entities[i]["_slug"] = f"{slug}-{slugify(entities[i]['type'])}"
+        else:
+            entities[indices[0]]["_slug"] = slug
+
+    return collisions
+
+
 _STUB_TEXT = "> Stub: no usable definition extracted. See sources for context."
 
 
@@ -222,7 +249,7 @@ def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict
 
         aliases = entity.get("aliases", [])
         alias_str = f" _(also: {', '.join(aliases)})_" if aliases else ""
-        slug = slugify(entity["name"])
+        slug = entity.get("_slug", slugify(entity["name"]))
         etype = entity_type_dir(entity["type"])
         lines.append(f"### [[{slug}|{entity['name']}]]{alias_str}")
         lines.append("")
@@ -239,7 +266,7 @@ def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict
 
 def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
     etype = entity_type_dir(entity["type"])
-    slug = slugify(entity["name"])
+    slug = entity.get("_slug", slugify(entity["name"]))
     page_dir = root / "kb" / etype
     page_dir.mkdir(parents=True, exist_ok=True)
     page_path = page_dir / f"{slug}.md"
@@ -316,7 +343,7 @@ def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) ->
         lines.append(f"### {etype.capitalize()}s")
         lines.append("")
         for entity in sorted(by_type[etype], key=lambda e: e["name"].lower()):
-            slug = slugify(entity["name"])
+            slug = entity.get("_slug", slugify(entity["name"]))
             lines.append(f"- [[{slug}|{entity['name']}]]")
         lines.append("")
 
@@ -363,7 +390,7 @@ def write_index_yaml(
         dir_name = entity_type_dir(etype)
         entries = []
         for entity in sorted(by_type.get(etype, []), key=lambda e: e["name"].lower()):
-            slug = slugify(entity["name"])
+            slug = entity.get("_slug", slugify(entity["name"]))
             entry = {
                 "title": entity["name"],
                 "file": f"{dir_name}/{slug}.md",
@@ -614,6 +641,12 @@ def main():
 
     quality_map = _extraction_quality_map(extractions)
     key_facts = collect_key_facts(extractions)
+
+    slug_collisions = resolve_slugs(entities)
+    if slug_collisions:
+        print(f"  Warnings — slug collisions ({len(slug_collisions)}):")
+        for slug, types in slug_collisions:
+            print(f"    '{slug}': types {', '.join(types)} — disambiguated with type suffix")
 
     for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
         (kb_dir / etype).mkdir(parents=True, exist_ok=True)

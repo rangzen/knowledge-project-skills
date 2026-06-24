@@ -117,6 +117,19 @@ last_built: 2026-06-21
 
 ---
 
+### Link policy
+
+Links use bare slugs: `[[widget|Widget]]`. Slugs must be globally unique across
+all entity subdirectories (`concepts/`, `people/`, `products/`, etc.). Obsidian
+resolves `[[slug]]` links by basename; other consumers must implement equivalent
+lookup.
+
+If two entities produce the same slug (e.g. "Widget" as both a `product` and a
+`concept`), the build disambiguates by appending the entity type:
+`widget-product`, `widget-concept`. A warning is printed and the build continues.
+
+---
+
 ### Edge cases
 
 - No extractions: print a helpful message, suggest `/extract --all`. Exit cleanly.
