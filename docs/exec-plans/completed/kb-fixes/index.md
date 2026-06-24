@@ -17,7 +17,7 @@ Source of truth: `caveats-kb.md` at repo root.
 - [x] [03 — Wikilink validator fix](03-wikilink-validation.md)
 - [x] [04 — Link generation consistency](04-link-generation.md)
 - [x] [05 — Glossary quality](05-glossary-quality.md)
-- [ ] [06 — Stale KB spec path reference](06-stale-spec-reference.md)
+- [x] [06 — Stale KB spec path reference](06-stale-spec-reference.md)
 - [x] [07 — Semantic quality metadata in KB outputs](07-index-yaml-quality.md)
 - [x] [08 — Surface upstream extraction quality at build time](08-upstream-quality.md)
 
