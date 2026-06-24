@@ -188,13 +188,13 @@ New sub-command that surfaces the gaps:
 
 ## Execution order
 
-| Step | Phase | Effort | Dependency |
-|---|---|---|---|
-| 1 | Phase 1 — add `body` to extraction schema + prompt | small | none |
-| 2 | Phase 1 — write_extraction.py pass-through | small | step 1 |
-| 3 | Phase 2 — kb_build.py uses `body` as page content | small | step 1 |
-| 4 | Phase 3a — query flags `enrichment_needed` | small | none |
-| 5 | Phase 3b — `/kb enrich` sub-command | medium | steps 3 + 4 |
+| | Step | Phase | Effort | Dependency |
+|---|---|---|---|---|
+| [x] | 1 | Phase 1 — add `body` to extraction schema + prompt | small | none |
+| [x] | 2 | Phase 1 — write_extraction.py pass-through (no-op: validator already passes unknown fields) | small | step 1 |
+| [ ] | 3 | Phase 2 — kb_build.py uses `body` as page content | small | step 1 |
+| [ ] | 4 | Phase 3a — query flags `enrichment_needed` | small | none |
+| [ ] | 5 | Phase 3b — `/kb enrich` sub-command | medium | steps 3 + 4 |
 
 ---
 
@@ -208,3 +208,4 @@ New sub-command that surfaces the gaps:
 | 2026-06-24 | Schema version stays "1"; `body` is optional | Additive field; all existing extractions remain valid |
 | 2026-06-24 | Enrichment loop is user-triggered, not automatic | Automatic re-extraction on every thin-page query would be too costly and noisy |
 | 2026-06-24 | Extraction prompt must explicitly name mechanics/procedures as valid entity types | The extractor was creating vocabulary-term entities but skipping rule systems like Combat; explicit guidance is needed |
+| 2026-06-24 | Body guidance uses domain-neutral language (processes, procedures, period descriptions, diagrams, tables) not game-specific terms | The KB is not game-specific; sources can be any domain |

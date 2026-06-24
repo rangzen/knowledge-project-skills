@@ -107,7 +107,8 @@ Required fields:
       "name": "<entity name>",
       "type": "<person|organization|place|product|concept|event|other>",
       "aliases": ["<alternative names>"],
-      "context": "<role in this document>",
+      "context": "<one-sentence role in this document>",
+      "body": "<optional markdown — full dedicated content from the source: procedure steps, period description, reference table, diagram transcription, criteria, etc. Omit for shallow entities where context is sufficient.>",
       "source_ref": "<same as top-level source_ref>"
     }
   ],
@@ -131,7 +132,19 @@ Required fields:
 
 Rules:
 - entities: all significant people, organisations, places, products,
-  concepts, and events.
+  concepts, and events. Also include significant processes, procedures, and
+  defined systems — these are just as important as named terms. An entity of
+  this kind is significant if it has its own section heading in the source or
+  is referenced repeatedly.
+- body: for each entity where the source contains substantial dedicated
+  content — a procedure, a process, a period description, a reference table,
+  a diagram transcription, a configuration reference, a set of criteria — write
+  a `body` field with that content in clean markdown. Use headers for
+  sub-sections, bullet lists for steps or options, pipe tables for tabular
+  data, blockquotes for examples. Omit `body` for shallow entities (a person's
+  name, a product citation) where `context` is already complete. The signal
+  is: does the source dedicate a section, table, or procedure to this entity?
+  If yes, capture it in `body`.
 - key_facts: most important claims, findings, or data points.
 - dates: all significant dates, ISO format where possible.
 - schema: if the document is tabular/structured (CSV, DB dump), populate
@@ -229,7 +242,7 @@ Fails loudly (non-zero exit, `.failed.json` written) on schema errors.
 | `model` | string | Model used |
 | `summary.short` | string | One sentence |
 | `summary.long` | string | Two to five sentences |
-| `entities` | array | See above |
+| `entities` | array | See above. Each entity may include an optional `body` (markdown string) for rich content. |
 | `key_facts` | array | See above |
 | `dates` | array | ISO dates + event description |
 | `schema` | object or null | Populated for CSV/DB sources |
