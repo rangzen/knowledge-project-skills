@@ -76,6 +76,7 @@ When scripts exist, use them rather than generating equivalent code inline.
 
 ## Rules for agents
 
+0. **This repo is the source, not the install target.** This repository is where skills are developed, bug-reported, analysed, and improved. The installed copies live elsewhere (e.g. `~/.claude/skills/`). Do NOT read, inspect, or modify files under `~/.claude/` or any home-directory path. When investigating a bug or working on a skill, use the source files in `skills/<name>/` inside this repo.
 1. **AGENTS.md is a map.** Never inline detail here — link to the doc that owns it.
 2. **Follow links before asking.** If a pointer exists, read the target first.
 3. **Use skill scripts when present.** If a skill has a `scripts/` directory, use those scripts rather than generating equivalent code ad hoc.
