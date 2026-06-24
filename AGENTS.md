@@ -92,3 +92,4 @@ When scripts exist, use them rather than generating equivalent code inline.
 5. **No orphan docs.** Every doc must appear in an index or be linked from here.
 6. **Verification status matters.** Check `docs/design-docs/index.md` before trusting a design doc.
 7. **Cross-link liberally.** Use relative Markdown links. `[[wikilinks]]` in `kb/` output only.
+8. **Bump the minor version on every skill change.** When modifying a `SKILL.md`, increment the `metadata.version` minor number (e.g. `1.2` → `1.3`). After `1.9` the next version is `1.10`, not `2.0`.
