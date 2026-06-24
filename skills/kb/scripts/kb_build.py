@@ -46,22 +46,105 @@ def load_extractions(root: Path) -> list[dict]:
     return extractions
 
 
-def resolve_entities(extractions: list[dict]) -> list[dict]:
-    """Merge entities across extractions by canonical name (case-insensitive)."""
+def resolve_entities(
+    extractions: list[dict],
+    confidence_threshold: float = 0.0,
+) -> tuple[list[dict], list[dict]]:
+    """Merge entities across extractions by canonical name (case-insensitive).
+
+    Detects type conflicts (same name, different type) and performs alias-based
+    merging (entity B is absorbed into A when B's name appears in A's alias list).
+    Returns (resolved_entities, conflicts).
+    """
     seen: dict[str, dict] = {}
+    conflicts: list[dict] = []
+
     for ext in extractions:
         source_id = ext["source_id"]
         for entity in ext.get("entities", []):
+            if confidence_threshold > 0 and entity.get("confidence", 1.0) < confidence_threshold:
+                continue
             key = entity["name"].lower()
             if key in seen:
-                if source_id not in seen[key]["_sources"]:
-                    seen[key]["_sources"].append(source_id)
+                existing = seen[key]
+                if existing["type"] != entity["type"]:
+                    conflicts.append({
+                        "name": entity["name"],
+                        "existing_type": existing["type"],
+                        "new_type": entity["type"],
+                        "source": source_id,
+                    })
+                elif source_id not in existing["_sources"]:
+                    existing["_sources"].append(source_id)
             else:
                 merged = dict(entity)
                 merged["_sources"] = [source_id]
                 merged.setdefault("aliases", [])
                 seen[key] = merged
-    return sorted(seen.values(), key=lambda e: e["name"].lower())
+
+    # Alias-based merge: if A has alias matching B's name, absorb B into A.
+    to_remove: set[str] = set()
+    for key, entity in list(seen.items()):
+        for alias in entity.get("aliases", []):
+            alias_key = alias.lower()
+            if alias_key in seen and alias_key not in to_remove:
+                other = seen[alias_key]
+                for src in other["_sources"]:
+                    if src not in entity["_sources"]:
+                        entity["_sources"].append(src)
+                if other["name"] not in entity["aliases"] and other["name"] != entity["name"]:
+                    entity["aliases"].append(other["name"])
+                for other_alias in other.get("aliases", []):
+                    if other_alias not in entity["aliases"] and other_alias.lower() != key:
+                        entity["aliases"].append(other_alias)
+                to_remove.add(alias_key)
+
+    for key in to_remove:
+        del seen[key]
+
+    return sorted(seen.values(), key=lambda e: e["name"].lower()), conflicts
+
+
+_DOC_CODE_RE = re.compile(r'^[A-Z][A-Z0-9-]*\d[A-Z0-9-]*$')
+
+
+def _load_stoplist(root: Path) -> set[str]:
+    stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
+    if not stoplist_path.exists():
+        return set()
+    return {
+        line.strip().lower()
+        for line in stoplist_path.read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+
+
+def filter_entities(
+    entities: list[dict],
+    root: Path,
+    min_source_count: int = 1,
+) -> tuple[list[dict], int]:
+    """Filter low-value entities before page generation.
+
+    Applies (in order): stoplist, document-code, and min-source-count filters.
+    Returns (kept_entities, filtered_count).
+    """
+    stoplist = _load_stoplist(root)
+    kept = []
+    filtered = 0
+    for entity in entities:
+        name = entity["name"]
+        if name.lower() in stoplist:
+            filtered += 1
+            continue
+        if _DOC_CODE_RE.match(name) and entity.get("type") != "document":
+            filtered += 1
+            continue
+        if len(entity["_sources"]) < min_source_count:
+            filtered += 1
+            continue
+        kept.append(entity)
+    return kept, filtered
 
 
 def collect_key_facts(extractions: list[dict]) -> list[dict]:
@@ -296,6 +379,11 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
     print(f"  Written: kb/index.yaml")
 
 
+def _candidate_stoplist_entries(entities: list[dict]) -> list[str]:
+    """Return entity names that look like structural noise: single lowercase word, not a proper noun."""
+    return sorted({e["name"] for e in entities if " " not in e["name"] and e["name"].islower()})
+
+
 def _wikilink_target(link: str) -> str:
     """Extract the link target from a wikilink, stripping alias and anchor."""
     return link.split("|")[0].split("#")[0].strip()
@@ -324,6 +412,10 @@ def validate_wikilinks(root: Path) -> list[tuple[Path, str]]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["build", "update"], default="build")
+    parser.add_argument("--min-sources", type=int, default=1, metavar="N",
+                        help="Minimum source count for entity promotion (default: 1)")
+    parser.add_argument("--confidence", type=float, default=0.0, metavar="THRESHOLD",
+                        help="Minimum entity confidence score (default: 0, no filter)")
     args = parser.parse_args()
 
     root = project_root()
@@ -348,7 +440,18 @@ def main():
 
     print(f"Building KB from {len(extractions)} extraction(s)...")
 
-    entities = resolve_entities(extractions)
+    entities, conflicts = resolve_entities(extractions, confidence_threshold=args.confidence)
+    if conflicts:
+        print(f"  Conflicts — type mismatches ({len(conflicts)}):")
+        for c in conflicts[:5]:
+            print(f"    {c['name']}: {c['existing_type']} vs {c['new_type']} (from {c['source']})")
+        if len(conflicts) > 5:
+            print(f"    ... and {len(conflicts) - 5} more")
+
+    entities, filtered_count = filter_entities(entities, root, min_source_count=args.min_sources)
+    if filtered_count:
+        print(f"  Filtered {filtered_count} low-value entities before page generation.")
+
     key_facts = collect_key_facts(extractions)
 
     for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
@@ -365,6 +468,21 @@ def main():
     write_index_md(root, entities, extractions)
     write_index_yaml(root, entities, extractions, key_facts)
     validate_wikilinks(root)
+
+    stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
+    candidates = _candidate_stoplist_entries(entities)
+    if candidates:
+        active = _load_stoplist(root)
+        file_text = stoplist_path.read_text() if stoplist_path.exists() else ""
+        new_candidates = [c for c in candidates if c not in active and c not in file_text]
+        if new_candidates:
+            stoplist_path.parent.mkdir(parents=True, exist_ok=True)
+            with stoplist_path.open("a") as f:
+                f.write("\n# Suggested (review and uncomment to activate):\n")
+                for c in new_candidates:
+                    f.write(f"# {c}\n")
+            print(f"  {len(new_candidates)} stoplist candidate(s) added to kb/config/entity_stoplist.txt")
+    print(f"  Tip: edit kb/config/entity_stoplist.txt to suppress low-value entities.")
 
     print(f"\nDone. {len(entities)} entities across {len(extractions)} source(s).")
 

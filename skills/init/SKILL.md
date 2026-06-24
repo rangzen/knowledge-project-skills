@@ -43,7 +43,19 @@ Read `.knowledge-project` in the current directory.
 sources/
 extractions/
 kb/
+kb/config/
 kb/questions/
+```
+
+**3b. Write `kb/config/entity_stoplist.txt`**
+
+```
+# Entity stoplist — one entry per line, case-insensitive.
+# Entities whose normalized name matches any entry here are dropped before page generation.
+# Add words you observe being extracted as false entities in your own KB builds.
+about
+access
+activating
 ```
 
 **4. Write `.knowledge-project`**

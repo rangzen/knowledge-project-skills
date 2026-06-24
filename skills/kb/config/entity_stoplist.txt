@@ -1,0 +1,6 @@
+# Entity stoplist — one entry per line, case-insensitive.
+# Entities whose normalized name matches any entry here are dropped before page generation.
+# Add words you observe being extracted as false entities in your own KB builds.
+about
+access
+activating
