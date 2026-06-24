@@ -65,6 +65,8 @@ answer_sources:
   - type: kb_page | extraction | source
     ref: <relative path>
 related_questions: []
+enrichment_needed: true | false
+enrichment_target: <relative KB path e.g. concepts/combat> | null
 ---
 
 ## Question
@@ -80,6 +82,16 @@ related_questions: []
 <one short paragraph: which files were consulted, why confidence is what it is>
 ```
 
+**Enrichment flagging**
+
+After writing the answer, set `enrichment_needed` and `enrichment_target` as follows:
+
+- Set `enrichment_needed: true` when either:
+  - The answer came from extraction or source (not a KB page) **and** a KB page for the topic exists but is thinner than the answer (heuristic: answer body is more than 2x the KB page body length in characters, or the answer contains structured content such as a table or numbered list that the KB page lacks).
+  - The answer came from extraction or source **and** no KB page exists for the topic at all.
+- Set `enrichment_target` to the relative KB path (e.g. `concepts/combat`, `concepts/scars`) when the page exists but is thin. Set to `null` when no page exists yet.
+- Set `enrichment_needed: false` (and omit `enrichment_target`) when the answer came directly from a KB page, or when no enrichment gap is detected.
+
 If `kb/` does not exist: fall back to searching `extractions/` directly.
 Still write the question file (create `kb/questions/` if needed).
 
@@ -92,8 +104,13 @@ List questions where `confidence` is `low` or `medium`, sorted by date descendin
 
 Output columns: `date`, `confidence`, `question`, `file`.
 
+Also list questions where `enrichment_needed: true`, grouped separately under
+an "Enrichment gaps" heading. For each, show: `date`, `question`,
+`enrichment_target` (or "no page exists" when null).
+
 Suggest running `/extract --all --force` for topics with multiple low-confidence
-entries, and `/kb build` after to close the loop.
+entries, and `/kb build` after to close the loop. For enrichment gaps, suggest
+`/kb enrich` to see the specific re-extract commands.
 
 ---
 

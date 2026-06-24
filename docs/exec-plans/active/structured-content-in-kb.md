@@ -193,7 +193,7 @@ New sub-command that surfaces the gaps:
 | [x] | 1 | Phase 1 — add `body` to extraction schema + prompt | small | none |
 | [x] | 2 | Phase 1 — write_extraction.py pass-through (no-op: validator already passes unknown fields) | small | step 1 |
 | [x] | 3 | Phase 2 — kb_build.py uses `body` as page content | small | step 1 |
-| [ ] | 4 | Phase 3a — query flags `enrichment_needed` | small | none |
+| [x] | 4 | Phase 3a — query flags `enrichment_needed` | small | none |
 | [ ] | 5 | Phase 3b — `/kb enrich` sub-command | medium | steps 3 + 4 |
 
 ---
