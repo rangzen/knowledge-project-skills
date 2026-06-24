@@ -93,7 +93,8 @@ When scripts exist, use them rather than generating equivalent code inline.
 6. **Verification status matters.** Check `docs/design-docs/index.md` before trusting a design doc.
 7. **Cross-link liberally.** Use relative Markdown links. `[[wikilinks]]` in `kb/` output only.
 8. **Bump the minor version on every skill change.** When modifying a `SKILL.md`, increment the `metadata.version` minor number (e.g. `1.2` → `1.3`). After `1.9` the next version is `1.10`, not `2.0`.
-9. **Commit message format.** Subject line: `topic_1: topic_2: short description` — all lowercase, no period. Then a blank line, then one explanation sentence per line, each starting with a capital letter and ending with a period. Example:
+9. **Skill links must be self-contained.** Links inside a `SKILL.md` or any file under `skills/<name>/` must only point to other files within that same skill directory. When a skill is installed in a user's project, the repo's `docs/`, design docs, product specs, and any other top-level directories do not exist. Never link from a skill to `../../../docs/` or any path outside `skills/<name>/`.
+10. **Commit message format.** Subject line: `topic_1: topic_2: short description` — all lowercase, no period. Then a blank line, then one explanation sentence per line, each starting with a capital letter and ending with a period. Example:
    ```
    extract: scripts: add two-stage extraction pipeline
 
