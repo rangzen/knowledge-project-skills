@@ -9,7 +9,7 @@ description: >
   activate when the user says "kps ingestion" or "kps ingest".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.3"
+  version: "1.4"
   project: knowledge-project-skills
 ---
 
@@ -54,11 +54,20 @@ to the project.
 1. Assign a `source-id` slug:
    - Derive a short kebab-case slug from the filename or URL
      (e.g. `cairn-annual-report`, `privacy-policy-2024`).
+   - For YouTube URLs, derive the slug from the video title if available, or
+     fall back to `youtube-<video-id>` (e.g. `youtube-dQw4w9WgXcQ`).
    - Keep it concise: 2–4 meaningful words, lowercase, hyphens only.
    - Check uniqueness against existing directory names in `sources/`.
    - If the slug already exists, append `-2`, `-3`, etc. until unique.
 2. Create `sources/<source-id>/`.
-3. Copy the file (or download the URL) into `sources/<source-id>/`.
+3. Fetch content into `sources/<source-id>/`:
+   - **YouTube URL** (`youtube.com/watch?v=` or `youtu.be/`): run
+     `uv run <skill-dir>/scripts/fetch_youtube.py <url> sources/<source-id>/`.
+     This writes `transcript.txt` (timestamped plain text, one line per caption)
+     and attempts to write `<title>.info.json` via yt-dlp (best-effort).
+     The primary content file for extraction is `transcript.txt`.
+   - **Other URL**: download with `curl -L -o <filename>`.
+   - **Local file**: copy into the directory.
 4. Run `<skill-dir>/scripts/ingest.py --source-id <source-id> --origin <path-or-url>`:
    - Computes SHA-256 hash.
    - Detects type (`pdf`, `csv`, `url`, `db-dump`, `markdown`, `image`, `other`).
@@ -111,6 +120,7 @@ For each source in `sources/`:
 ### Edge cases
 
 - URL download fails: report the error, do not create a partial `sources/<source-id>/`.
+- YouTube transcript unavailable (private video, no captions): `fetch_youtube.py` exits non-zero; report the error and do not create a partial source directory.
 - File not found: report clearly, suggest checking the path.
 - Project not initialized (`.knowledge-project` missing): prompt the user to run `/init` first.
 - Empty directory: report zero files found.
