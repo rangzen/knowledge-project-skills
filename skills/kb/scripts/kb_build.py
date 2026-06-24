@@ -599,9 +599,104 @@ def validate_wikilinks(root: Path) -> list[tuple[Path, str]]:
     return broken
 
 
+def _page_has_body(page_path: Path) -> bool:
+    """Return True when a KB page has substantive body content beyond the context one-liner."""
+    if not page_path.exists():
+        return False
+    text = page_path.read_text()
+    fm_match = re.match(r"^---\n.*?\n---\n", text, re.DOTALL)
+    body = text[fm_match.end():] if fm_match else text
+    return bool(re.search(r"^#{2,}\s", body, re.MULTILINE))
+
+
+def _page_sources(page_path: Path) -> list[str]:
+    """Extract source IDs from a KB page's frontmatter sources list."""
+    text = page_path.read_text()
+    fm_match = re.search(r"^---\n(.*?)\n---", text, re.DOTALL)
+    if not fm_match:
+        return []
+    return re.findall(r"^  - (\S+)", fm_match.group(1), re.MULTILINE)
+
+
+def _clear_enrichment_flag(qfile: Path) -> None:
+    text = qfile.read_text()
+    text = re.sub(r"enrichment_needed:\s*true", "enrichment_needed: false", text)
+    text = re.sub(r"\nenrichment_target:.*", "", text)
+    qfile.write_text(text)
+
+
+def run_enrich(root: Path) -> None:
+    questions_dir = root / "kb" / "questions"
+    if not questions_dir.exists():
+        print("No questions found. Ask a question with /query first.")
+        return
+
+    gaps = []
+    for qfile in sorted(questions_dir.glob("*.md")):
+        text = qfile.read_text()
+        fm_match = re.search(r"^---\n(.*?)\n---", text, re.DOTALL)
+        if not fm_match:
+            continue
+        fm = fm_match.group(1)
+        if not re.search(r"enrichment_needed:\s*true", fm, re.IGNORECASE):
+            continue
+        date_match = re.search(r"date:\s*(\S+)", fm)
+        question_match = re.search(r'question:\s*["\']?(.+?)["\']?\s*$', fm, re.MULTILINE)
+        target_match = re.search(r"enrichment_target:\s*(.+)", fm)
+        date = date_match.group(1) if date_match else "unknown"
+        question = question_match.group(1).strip('"\'') if question_match else "unknown"
+        target_raw = target_match.group(1).strip() if target_match else "null"
+        target = None if target_raw == "null" else target_raw
+        gaps.append({"date": date, "question": question, "target": target, "file": qfile})
+
+    if not gaps:
+        print("No enrichment gaps found.")
+        return
+
+    cleared = [g for g in gaps if g["target"] and _page_has_body(root / "kb" / f"{g['target']}.md")]
+    still_open = [g for g in gaps if g not in cleared]
+
+    if cleared:
+        print(f"Clearing {len(cleared)} enrichment flag(s) (target pages now have body content):")
+        for gap in cleared:
+            _clear_enrichment_flag(gap["file"])
+            print(f"  Cleared: {gap['file'].name}")
+        print()
+
+    if not still_open:
+        print("All enrichment gaps resolved.")
+        return
+
+    print(f"Open enrichment gaps ({len(still_open)}):\n")
+    sources_to_reextract: dict[str, list[str]] = {}
+
+    for gap in still_open:
+        print(f"  Date:     {gap['date']}")
+        print(f"  Question: {gap['question']}")
+        if gap["target"]:
+            page_path = root / "kb" / f"{gap['target']}.md"
+            if page_path.exists():
+                print(f"  Target:   kb/{gap['target']}.md (thin page, needs enrichment)")
+                for src in _page_sources(page_path):
+                    sources_to_reextract.setdefault(src, []).append(gap["target"])
+            else:
+                print(f"  Target:   kb/{gap['target']}.md (page does not exist yet)")
+        else:
+            print(f"  Target:   (entity was never extracted -- no KB page exists)")
+        print()
+
+    if sources_to_reextract:
+        print("Suggested re-extract commands:")
+        for src in sorted(sources_to_reextract):
+            print(f"  /extract --force {src}")
+        print("\nAfter re-extracting, run /kb build, then /kb enrich again to clear flags.")
+    else:
+        print("Tip: identify the source for the above topics and run /extract --force <source-id>, then /kb build.")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["build", "update"], default="build")
+    parser.add_argument("--mode", choices=["build", "update", "enrich"], default="build")
     parser.add_argument("--min-sources", type=int, default=1, metavar="N",
                         help="Minimum source count for entity promotion (default: 1)")
     parser.add_argument("--confidence", type=float, default=0.0, metavar="THRESHOLD",
@@ -609,6 +704,11 @@ def main():
     args = parser.parse_args()
 
     root = project_root()
+
+    if args.mode == "enrich":
+        run_enrich(root)
+        return
+
     kb_dir = root / "kb"
 
     extractions = load_extractions(root)

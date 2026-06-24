@@ -11,7 +11,7 @@ description: >
   when the user says "kps kb".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.3"
+  version: "1.4"
   project: knowledge-project-skills
 ---
 
@@ -19,8 +19,9 @@ metadata:
 
 ### When to activate
 
-Activate when the user invokes `/kb build`, `/kb update`, or `/kb add-page`,
-or asks to build, rebuild, or update the knowledge base or wiki.
+Activate when the user invokes `/kb build`, `/kb update`, `/kb add-page`, or
+`/kb enrich`, or asks to build, rebuild, update, or enrich the knowledge base
+or wiki.
 
 ---
 
@@ -59,6 +60,37 @@ Run:
 ```
 <skill-dir>/scripts/kb_build.py --mode update
 ```
+
+#### `enrich`
+
+Retroactive sweep for enrichment gaps that were not resolved inline by `/query`
+(e.g. past questions asked before inline enrichment was added, or gaps where
+the inline enrichment failed).
+
+Run the automated pipeline:
+
+```
+<skill-dir>/scripts/kb_build.py --mode enrich
+```
+
+The script outputs:
+- Which question files still have `enrichment_needed: true`
+- Which sources to re-extract (read from the target pages' frontmatter)
+- Which flags were already cleared (target page now has body content)
+
+**After running the script, execute these steps automatically:**
+
+1. For each source ID listed in the script output, invoke the extract skill
+   with `--force` on that source.
+2. Run `<skill-dir>/scripts/kb_build.py --mode build` to write enriched body
+   content into KB pages.
+3. Run `<skill-dir>/scripts/kb_build.py --mode enrich` one more time to clear
+   the flags on question files whose target pages now have body content.
+
+Report a summary: how many gaps were found, which sources were re-extracted,
+how many flags were cleared.
+
+If there are no gaps, say so and stop.
 
 #### `add-page <topic>`
 

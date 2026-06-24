@@ -10,7 +10,7 @@ description: >
   "kps" is the short name for this project (Knowledge Project Skills) — also
   activate when the user says "kps query".
 metadata:
-  version: "1.0"
+  version: "1.1"
   project: knowledge-project-skills
 ---
 
@@ -82,15 +82,36 @@ enrichment_target: <relative KB path e.g. concepts/combat> | null
 <one short paragraph: which files were consulted, why confidence is what it is>
 ```
 
-**Enrichment flagging**
+**Enrichment (inline, automatic)**
 
-After writing the answer, set `enrichment_needed` and `enrichment_target` as follows:
+When the answer comes from extraction or source (not a KB page), detect whether
+a gap exists:
 
-- Set `enrichment_needed: true` when either:
-  - The answer came from extraction or source (not a KB page) **and** a KB page for the topic exists but is thinner than the answer (heuristic: answer body is more than 2x the KB page body length in characters, or the answer contains structured content such as a table or numbered list that the KB page lacks).
-  - The answer came from extraction or source **and** no KB page exists for the topic at all.
-- Set `enrichment_target` to the relative KB path (e.g. `concepts/combat`, `concepts/scars`) when the page exists but is thin. Set to `null` when no page exists yet.
-- Set `enrichment_needed: false` (and omit `enrichment_target`) when the answer came directly from a KB page, or when no enrichment gap is detected.
+- **Gap condition A:** a KB page for the topic exists but is thinner than the
+  answer (heuristic: answer body is more than 2x the KB page body length, or
+  the answer contains structured content such as a table or numbered list that
+  the KB page lacks).
+- **Gap condition B:** no KB page exists for the topic at all.
+
+If either condition is met, enrich immediately before finishing:
+
+1. Identify the source(s) to re-extract:
+   - If a KB page exists: read its `sources:` frontmatter list.
+   - If no KB page: find which extraction JSON files contain the entity by name.
+2. Re-extract each source with `--force` (invoke the extract skill).
+3. Run `<kb-skill-dir>/scripts/kb_build.py --mode build` to write the enriched
+   `body` into the KB page.
+4. Re-read the newly built KB page and use it to improve or confirm the answer.
+5. Save the question file with `enrichment_needed: false` (gap resolved inline).
+
+Tell the user in the answer that the KB page was enriched as a side effect,
+e.g. "I've also updated `kb/concepts/combat.md` with the full rules."
+
+If enrichment fails (extraction error, no source found): fall back to answering
+from what was found, save `enrichment_needed: true` and `enrichment_target` for
+later resolution via `/kb enrich`.
+
+If no gap is detected, save `enrichment_needed: false` as usual.
 
 If `kb/` does not exist: fall back to searching `extractions/` directly.
 Still write the question file (create `kb/questions/` if needed).
@@ -109,8 +130,8 @@ an "Enrichment gaps" heading. For each, show: `date`, `question`,
 `enrichment_target` (or "no page exists" when null).
 
 Suggest running `/extract --all --force` for topics with multiple low-confidence
-entries, and `/kb build` after to close the loop. For enrichment gaps, suggest
-`/kb enrich` to see the specific re-extract commands.
+entries, and `/kb build` after to close the loop. For enrichment gaps that were
+not resolved inline (failed extractions), suggest `/kb enrich` to retry them.
 
 ---
 
