@@ -332,7 +332,12 @@ def main():
         meta_path = source_dir / ".meta.json"
         if meta_path.exists():
             meta = json.loads(meta_path.read_text())
-            if not meta.get("extracted"):
+            extraction = meta.get("extraction", {})
+            is_extracted = (
+                extraction.get("status") == "complete"
+                or meta.get("extracted") is True
+            )
+            if not is_extracted:
                 print(f"Warning: {source_dir.name} has not been extracted yet.")
 
     print(f"Building KB from {len(extractions)} extraction(s)...")

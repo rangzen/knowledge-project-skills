@@ -77,7 +77,7 @@ to the project.
   "hash": "sha256:<hex>",
   "page_count": 42,
   "sensitive": false,
-  "extracted": false,
+  "extraction": {"status": "pending"},
   "stale": false
 }
 ```
@@ -85,7 +85,7 @@ to the project.
 
 For each directory in `sources/`, read `.meta.json` and print a table:
 
-| source-id | type | origin | ingested-at | extracted | stale |
+| source-id | type | origin | ingested-at | extraction.status | stale |
 |---|---|---|---|---|---|
 
 #### `check-updates`

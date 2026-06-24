@@ -10,9 +10,10 @@ Usage:
   uv run scripts/write_extraction.py --source-id src-001 --input extraction.json
   uv run scripts/write_extraction.py --source-id src-001 --force
 
-Reads the agent-produced extraction JSON from stdin (or --input), validates it
-against the schema, writes extractions/<source-id>.json, and sets
-extracted: true in sources/<source-id>/.meta.json.
+Reads the agent-produced extraction JSON from stdin (or --input), deduplicates
+entities, runs quality checks, validates against the schema, writes
+extractions/<source-id>.json, and updates sources/<source-id>/.meta.json with
+a structured extraction status object.
 
 On failure: writes extractions/<source-id>.failed.json and exits non-zero.
 Never overwrites a good extraction without --force.
@@ -26,7 +27,10 @@ from pathlib import Path
 
 
 SCHEMA_VERSION = "1"
+EXTRACTOR_VERSION = "1.0.0"
 VALID_ENTITY_TYPES = {"person", "organization", "place", "product", "concept", "event", "other"}
+MIN_SUMMARY_LENGTH = 50
+MIN_ENTITY_COUNT = 2
 
 
 def project_root() -> Path:
@@ -66,6 +70,52 @@ def validate(data: dict) -> list[str]:
             errors.append(f"dates[{i}] missing 'date' or 'event'")
 
     return errors
+
+
+def deduplicate_entities(entities: list[dict]) -> tuple[list[dict], int]:
+    """Return (unique entities, count of duplicates removed). Keyed by normalised name."""
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for entity in entities:
+        key = entity.get("name", "").lower().strip()
+        if key not in seen:
+            seen.add(key)
+            unique.append(entity)
+    return unique, len(entities) - len(unique)
+
+
+def quality_check(data: dict) -> dict:
+    """Compute quality flags for an extraction. Returns the quality block dict."""
+    flags: list[str] = []
+    warnings: list[str] = []
+
+    summary_short = data.get("summary", {}).get("short", "")
+    entities = data.get("entities", [])
+    facts = data.get("key_facts", [])
+
+    if len(summary_short) < MIN_SUMMARY_LENGTH and not entities and not facts:
+        flags.append("no_text")
+        warnings.append("No usable text extracted; source may be empty or unsupported.")
+    else:
+        if len(summary_short) < MIN_SUMMARY_LENGTH:
+            flags.append("low_summary")
+            warnings.append(f"Summary is shorter than {MIN_SUMMARY_LENGTH} characters.")
+        if len(entities) < MIN_ENTITY_COUNT:
+            flags.append("low_entity_count")
+            count = len(entities)
+            noun = "entity" if count == 1 else "entities"
+            warnings.append(f"Only {count} {noun} extracted; expected at least {MIN_ENTITY_COUNT}.")
+
+    return {"flags": flags, "warnings": warnings, "text_coverage": None}
+
+
+def quality_level(quality: dict) -> str:
+    flags = quality.get("flags", [])
+    if not flags:
+        return "ok"
+    if "no_text" in flags or len(flags) >= 2:
+        return "low"
+    return "warning"
 
 
 def write_failure(extractions_dir: Path, source_id: str, error: str) -> None:
@@ -120,14 +170,32 @@ def main():
         write_failure(extractions_dir, args.source_id, msg)
         sys.exit(1)
 
+    data["entities"], removed = deduplicate_entities(data.get("entities", []))
+
+    quality = quality_check(data)
+    data["quality"] = quality
+
     output_path.write_text(json.dumps(data, indent=2))
 
+    extracted_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     meta = json.loads(meta_path.read_text())
-    meta["extracted"] = True
+    meta.pop("extracted", None)
+    meta["extraction"] = {
+        "status": "complete",
+        "extractor_version": EXTRACTOR_VERSION,
+        "extracted_at": extracted_at,
+        "quality": quality_level(quality),
+    }
     meta_path.write_text(json.dumps(meta, indent=2))
 
-    entity_count = len(data.get("entities", []))
+    entity_count = len(data["entities"])
     print(f"OK: {args.source_id} — {entity_count} entities — {data['summary']['short']}")
+    if removed:
+        print(f"  Deduplication: removed {removed} duplicate {'entity' if removed == 1 else 'entities'}")
+    if quality["flags"]:
+        for w in quality["warnings"]:
+            print(f"  Warning: {w}")
+        print(f"  Quality: {quality_level(quality)} (flags: {', '.join(quality['flags'])})")
 
 
 if __name__ == "__main__":

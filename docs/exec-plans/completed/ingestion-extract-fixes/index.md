@@ -20,8 +20,8 @@ Source of truth: `caveats-extract.md` at repo root.
 - [x] [04 — Structured extraction pipeline](04-structured-extraction.md)
 - [x] [05 — Broken spec path reference in extract skill](05-broken-spec-reference.md)
 - [x] [06 — Format-specific extraction for non-PDF types](06-non-pdf-formats.md)
-- [ ] [07 — Extraction quality guardrails](07-quality-guardrails.md)
-- [ ] [08 — Richer extraction status (replace `extracted: true`)](08-extraction-status.md)
+- [x] [07 — Extraction quality guardrails](07-quality-guardrails.md)
+- [x] [08 — Richer extraction status (replace `extracted: true`)](08-extraction-status.md)
 
 ## Priority order
 

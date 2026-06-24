@@ -121,7 +121,8 @@ last_built: 2026-06-21
 
 - No extractions: print a helpful message, suggest `/extract --all`. Exit cleanly.
 - Partial extractions: build from what exists, warn about sources with
-  `extracted: false` in `.meta.json`.
+  `extraction.status != "complete"` in `.meta.json`. Legacy `extracted: true` is
+  treated as complete.
 - Broken `[[wikilinks]]`: report as warnings with originating page. Do not fail.
 - `schema_version` mismatch in an extraction: skip that source and warn.
 

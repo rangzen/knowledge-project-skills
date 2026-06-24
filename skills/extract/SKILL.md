@@ -77,10 +77,10 @@ uv run <skill-dir>/scripts/write_extraction.py --source-id <source-id> [--force]
 ```
 
 Pipe the extraction JSON to this script via stdin (or pass `--input <file>`).
-It validates the output against the schema, writes
-`extractions/<source-id>.json`, and sets `extracted: true` in `.meta.json`.
-On failure it writes `extractions/<source-id>.failed.json` and exits
-non-zero.
+It deduplicates entities, runs quality checks, validates against the schema,
+writes `extractions/<source-id>.json`, and updates `.meta.json` with a
+structured `extraction` status object. On failure it writes
+`extractions/<source-id>.failed.json` and exits non-zero.
 
 ---
 
@@ -190,8 +190,21 @@ Output: `{"text": "<raw yaml>", "metadata": {"format": "yaml", "source_ref": "..
 
 #### `write_extraction.py --source-id <id> [options]`
 
-Validates an agent-produced extraction JSON (from stdin or `--input`) and
-writes it to `extractions/<source-id>.json`. Updates `.meta.json`.
+Deduplicates entities, runs quality checks, validates an agent-produced
+extraction JSON (from stdin or `--input`), writes it to
+`extractions/<source-id>.json`, and updates `.meta.json` with:
+```json
+{
+  "extraction": {
+    "status": "complete",
+    "extractor_version": "1.0.0",
+    "extracted_at": "<ISO datetime UTC>",
+    "quality": "ok | warning | low"
+  }
+}
+```
+Migration note: sources with legacy `extracted: true` in `.meta.json` are
+treated as `status: "complete", quality: "unknown"` by downstream tools.
 
 | Flag | Effect |
 |---|---|
@@ -221,6 +234,11 @@ Fails loudly (non-zero exit, `.failed.json` written) on schema errors.
 | `dates` | array | ISO dates + event description |
 | `schema` | object or null | Populated for CSV/DB sources |
 | `images` | array | Populated for PDFs with figures |
+| `quality.flags` | array of strings | e.g. `["low_entity_count"]` |
+| `quality.warnings` | array of strings | Human-readable quality messages |
+| `quality.text_coverage` | float or null | Fraction of source text represented |
+
+`quality` is computed and injected by `write_extraction.py` — the agent does not produce it.
 
 The full schema with examples is defined inline in the Output schema section above.
 

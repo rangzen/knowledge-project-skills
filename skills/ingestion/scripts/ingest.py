@@ -232,7 +232,7 @@ def main():
         "hash": file_hash,
         "page_count": page_count,
         "sensitive": False,
-        "extracted": False,
+        "extraction": {"status": "pending"},
         "stale": False,
     }
     meta_path.write_text(json.dumps(meta, indent=2))
