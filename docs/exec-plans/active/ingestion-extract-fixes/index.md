@@ -16,7 +16,7 @@ Source of truth: `caveats-extract.md` at repo root.
 
 - [x] [01 — Directory ingestion semantics](01-directory-ingestion.md)
 - [x] [02 — Recursive ingestion + duplicate handling](02-recursive-ingestion.md)
-- [ ] [03 — Metadata model one-source-per-file invariant](03-metadata-model.md)
+- [x] [03 — Metadata model one-source-per-file invariant](03-metadata-model.md)
 - [x] [04 — Structured extraction pipeline](04-structured-extraction.md)
 - [x] [05 — Broken spec path reference in extract skill](05-broken-spec-reference.md)
 - [x] [06 — Format-specific extraction for non-PDF types](06-non-pdf-formats.md)

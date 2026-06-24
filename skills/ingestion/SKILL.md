@@ -81,7 +81,6 @@ to the project.
   "stale": false
 }
 ```
-
 #### `status`
 
 For each directory in `sources/`, read `.meta.json` and print a table:

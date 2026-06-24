@@ -1,22 +1,31 @@
-# 03 — Metadata Model One-Source-Per-File Invariant
+# 03 — Metadata Model: Primary File Selection and Duplicate Warnings
 
 ## Problem
 
-`.meta.json` fields (`type`, `hash`, `page_count`) assume a single underlying file. If the model ever drifted toward multi-file sources, these fields would be ambiguous.
+`.meta.json` fields (`type`, `hash`, `page_count`) are defined relative to one primary
+content file per source. `ingest.py` was using `files[0]` which is non-deterministic
+when a source directory contains multiple files (extraction outputs, sidecars, etc.).
+
+No duplicate check existed on the single-file ingestion path (only `--list-dir` had it).
 
 ## Decision
 
-One source ID always maps to exactly one file. The flat `.meta.json` schema is correct and stays flat.
+- A source directory may contain multiple files (the original content file plus extraction
+  outputs or other sidecars produced later). The primary content file is the oldest by mtime,
+  which is the original ingested file.
+- Duplicate detection (by hash and by filename) warns but does not block ingestion.
 
-## Steps
+## What was implemented
 
-1. Add a comment to `ingest.py` at the source-creation step asserting the invariant:
-   - "Each source directory contains exactly one content file."
-2. Add a guard in `ingest.py`: if more than one non-hidden, non-meta file is found in `sources/<id>/`, raise a clear error rather than silently reading only the first.
-3. Update `SKILL.md` to state the invariant explicitly in the schema section.
-4. Add an acceptance test: manually place two files in a source directory and verify `ingest.py` errors out cleanly.
+1. `_primary_content_file(source_dir)` — sorts non-hidden files by mtime ascending, picks
+   the oldest, warns on stderr if multiple files are present.
+2. Both `--check-update` and the main ingestion path now go through this helper.
+3. On the main ingestion path: after hashing, compare against `load_existing_hashes` (same
+   content already ingested elsewhere) and `load_existing_names` (same original filename
+   already ingested elsewhere). Both emit a warning but do not abort.
 
-## Acceptance criteria
+## Acceptance criteria (met)
 
-- `ingest.py` raises a descriptive error if a source directory contains more than one content file.
-- `SKILL.md` states the one-source-per-file invariant.
+- Multiple files in a source directory: no error, oldest by mtime is used, warning printed.
+- Duplicate hash: warning on stderr.
+- Duplicate filename: warning on stderr.

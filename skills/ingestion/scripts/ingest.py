@@ -86,6 +86,47 @@ def load_existing_hashes(root: Path) -> dict[str, str]:
     return existing
 
 
+def load_existing_names(root: Path) -> dict[str, str]:
+    """Return mapping of original filename -> source_id from the origin field of all ingested sources."""
+    existing: dict[str, str] = {}
+    sources_dir = root / "sources"
+    if not sources_dir.exists():
+        return existing
+    for meta_file in sources_dir.glob("*/.meta.json"):
+        try:
+            meta = json.loads(meta_file.read_text())
+            sid = meta.get("source_id")
+            origin = meta.get("origin", "")
+            if sid and origin and "://" not in origin:
+                existing[Path(origin).name] = sid
+        except Exception:
+            pass
+    return existing
+
+
+def _primary_content_file(source_dir: Path) -> Path:
+    """Return the primary content file in a source directory, oldest by mtime.
+
+    Warns on stderr if multiple files are present (extraction outputs, sidecars, etc.)
+    so that the mtime-based selection is visible.
+    """
+    files = sorted(
+        [f for f in source_dir.iterdir() if not f.name.startswith(".")],
+        key=lambda f: f.stat().st_mtime,
+    )
+    if not files:
+        print(f"No file found in {source_dir}", file=sys.stderr)
+        sys.exit(1)
+    if len(files) > 1:
+        names = ", ".join(f.name for f in files)
+        print(
+            f"Warning: {source_dir.name} contains {len(files)} files ({names}); "
+            f"using oldest by mtime as primary: {files[0].name}",
+            file=sys.stderr,
+        )
+    return files[0]
+
+
 def list_directory(directory: Path, root: Path) -> list[dict]:
     """Walk directory recursively; return all non-hidden files with duplicate detection."""
     existing = load_existing_hashes(root)
@@ -154,11 +195,8 @@ def main():
             print(f"No .meta.json for {args.source_id}", file=sys.stderr)
             sys.exit(1)
         meta = json.loads(meta_path.read_text())
-        files = [f for f in source_dir.iterdir() if not f.name.startswith(".")]
-        if not files:
-            print(f"No file found in {source_dir}", file=sys.stderr)
-            sys.exit(1)
-        current_hash = sha256_file(files[0])
+        file_path = _primary_content_file(source_dir)
+        current_hash = sha256_file(file_path)
         if current_hash != meta["hash"]:
             meta["stale"] = True
             meta_path.write_text(json.dumps(meta, indent=2))
@@ -167,14 +205,23 @@ def main():
             print(f"OK: {args.source_id} unchanged")
         return
 
-    files = [f for f in source_dir.iterdir() if not f.name.startswith(".")]
-    if not files:
-        print(f"No file found in {source_dir}", file=sys.stderr)
-        sys.exit(1)
-    file_path = files[0]
+    file_path = _primary_content_file(source_dir)
 
     file_type = detect_type(file_path)
     file_hash = sha256_file(file_path)
+
+    existing_hashes = load_existing_hashes(root)
+    if file_hash in existing_hashes and existing_hashes[file_hash] != args.source_id:
+        print(
+            f"Warning: same content already ingested as '{existing_hashes[file_hash]}'",
+            file=sys.stderr,
+        )
+    existing_names = load_existing_names(root)
+    if file_path.name in existing_names and existing_names[file_path.name] != args.source_id:
+        print(
+            f"Warning: filename '{file_path.name}' already ingested as '{existing_names[file_path.name]}'",
+            file=sys.stderr,
+        )
     page_count = pdf_page_count(file_path) if file_type == "pdf" else None
 
     meta = {
