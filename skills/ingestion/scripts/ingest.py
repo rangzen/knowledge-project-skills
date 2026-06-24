@@ -8,6 +8,7 @@
 import argparse
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,6 +35,18 @@ def detect_type(path: Path) -> str:
         ".gif": "image",
         ".webp": "image",
         ".sql": "db-dump",
+        ".txt": "text",
+        # Microsoft Office
+        ".doc": "word",
+        ".docx": "word",
+        ".xls": "excel",
+        ".xlsx": "excel",
+        ".ppt": "powerpoint",
+        ".pptx": "powerpoint",
+        # OpenDocument (OpenOffice / LibreOffice)
+        ".odt": "odt",
+        ".ods": "ods",
+        ".odp": "odp",
     }
     return mapping.get(suffix, "other")
 
@@ -57,6 +70,44 @@ def pdf_page_count(path: Path) -> int | None:
     return None
 
 
+def load_existing_hashes(root: Path) -> dict[str, str]:
+    """Return mapping of hash -> source_id for all already-ingested sources."""
+    existing: dict[str, str] = {}
+    sources_dir = root / "sources"
+    if not sources_dir.exists():
+        return existing
+    for meta_file in sources_dir.glob("*/.meta.json"):
+        try:
+            meta = json.loads(meta_file.read_text())
+            if "hash" in meta and "source_id" in meta:
+                existing[meta["hash"]] = meta["source_id"]
+        except Exception:
+            pass
+    return existing
+
+
+def list_directory(directory: Path, root: Path) -> list[dict]:
+    """Walk directory recursively; return all non-hidden files with duplicate detection."""
+    existing = load_existing_hashes(root)
+    records: list[dict] = []
+
+    for dirpath, dirnames, filenames in os.walk(directory):
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        for filename in sorted(filenames):
+            if filename.startswith("."):
+                continue
+            filepath = Path(dirpath) / filename
+            file_hash = sha256_file(filepath)
+            records.append({
+                "path": str(filepath),
+                "hash": file_hash,
+                "type": detect_type(filepath),
+                "duplicate_of": existing.get(file_hash),
+            })
+
+    return records
+
+
 def project_root() -> Path:
     p = Path.cwd()
     while p != p.parent:
@@ -68,12 +119,33 @@ def project_root() -> Path:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-id", required=True)
+    parser.add_argument("--source-id", default=None)
     parser.add_argument("--origin", default=None)
     parser.add_argument("--check-update", action="store_true")
+    parser.add_argument("--list-dir", metavar="DIR", default=None,
+                        help="Recursively list supported files with duplicate detection")
     args = parser.parse_args()
 
     root = project_root()
+
+    if args.list_dir:
+        directory = Path(args.list_dir).resolve()
+        if not directory.is_dir():
+            print(f"Not a directory: {directory}", file=sys.stderr)
+            sys.exit(1)
+        records = list_directory(directory, root)
+        print(json.dumps({
+            "directory": str(directory),
+            "files": records,
+            "total": len(records),
+            "duplicates": sum(1 for r in records if r["duplicate_of"]),
+        }, indent=2))
+        return
+
+    if not args.source_id:
+        print("--source-id is required unless --list-dir is used", file=sys.stderr)
+        sys.exit(1)
+
     source_dir = root / "sources" / args.source_id
     meta_path = source_dir / ".meta.json"
 

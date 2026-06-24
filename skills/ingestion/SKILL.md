@@ -9,7 +9,7 @@ description: >
   activate when the user says "kps ingestion" or "kps ingest".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.2"
+  version: "1.3"
   project: knowledge-project-skills
 ---
 
@@ -26,6 +26,30 @@ to the project.
 ### Sub-commands
 
 #### `add <path-or-url>`
+
+**If `<path>` is a directory:**
+
+1. Run `<skill-dir>/scripts/ingest.py --list-dir <path>` to discover files.
+   The script walks recursively (skipping hidden files and dirs), hashes each
+   file, and checks against existing sources for duplicates. All file types
+   are included — no extension filtering.
+2. Count files where `duplicate_of` is `null` (new files to ingest).
+3. If that count exceeds the threshold (default 50, override with `--threshold N`):
+   ```
+   Found N files. This will create N sources. Continue? [y/N]
+   ```
+   If the user answers N (or gives no answer), abort with zero sources created.
+   Pass `--yes` to skip this prompt for scripted use (`--threshold 0` also bypasses it).
+4. For each non-duplicate file, run the single-file ingestion steps below
+   (derive slug, create directory, copy, run ingest.py, handle `--sensitive`).
+5. After all files are processed, print a summary:
+   ```
+   Added:      N
+   Duplicate:  N  (already ingested as <source-id>)
+   Failed:     N
+   ```
+
+**If `<path>` is a single file or a URL:**
 
 1. Assign a `source-id` slug:
    - Derive a short kebab-case slug from the filename or URL
@@ -80,6 +104,8 @@ For each source in `sources/`:
 | Flag | Effect |
 |---|---|
 | `--sensitive` | Adds `sources/<source-id>/` to `.gitignore`. |
+| `--threshold N` | Override the file-count confirmation threshold (default 50). Set to 0 to disable. |
+| `--yes` | Skip the directory file-count confirmation prompt. |
 
 ---
 
@@ -88,3 +114,5 @@ For each source in `sources/`:
 - URL download fails: report the error, do not create a partial `sources/<source-id>/`.
 - File not found: report clearly, suggest checking the path.
 - Project not initialized (`.knowledge-project` missing): prompt the user to run `/init` first.
+- Empty directory: report zero files found.
+- Duplicate file in directory input: log it in the summary (`Duplicate: N`) with the existing `source-id`; do not re-ingest.
