@@ -93,3 +93,10 @@ When scripts exist, use them rather than generating equivalent code inline.
 6. **Verification status matters.** Check `docs/design-docs/index.md` before trusting a design doc.
 7. **Cross-link liberally.** Use relative Markdown links. `[[wikilinks]]` in `kb/` output only.
 8. **Bump the minor version on every skill change.** When modifying a `SKILL.md`, increment the `metadata.version` minor number (e.g. `1.2` → `1.3`). After `1.9` the next version is `1.10`, not `2.0`.
+9. **Commit message format.** Subject line: `topic_1: topic_2: short description` — all lowercase, no period. Then a blank line, then one explanation sentence per line, each starting with a capital letter and ending with a period. Example:
+   ```
+   extract: scripts: add two-stage extraction pipeline
+
+   Adds preprocess_pdf.py and extract_llm.py to replace ad-hoc agent extraction.
+   extract_llm.py validates LLM output against the schema before writing.
+   ```
