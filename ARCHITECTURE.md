@@ -1,7 +1,7 @@
 # Architecture
 
 → See [AGENTS.md](AGENTS.md) for the full repository map.
-→ See [docs/references/agentskills-io.md](docs/references/agentskills-io.md) for the Agent Skills format spec.
+→ See [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) for the Agent Skills format spec.
 
 ---
 

@@ -33,8 +33,8 @@ are not acceptable. See [ARCHITECTURE.md](../../ARCHITECTURE.md) for the
 A first pass produces rough structure. Subsequent passes refine, add relations,
 and resolve conflicts. The pipeline is designed for iteration, not for single runs.
 
-**Implication**: Extraction outputs are versioned. Re-running `extract` replaces
-the previous output rather than patching it, but older versions are kept for diff.
+**Implication**: Re-running `extract` replaces the previous output rather than
+patching it. Version history is preserved by git, not by the skill itself.
 
 ---
 

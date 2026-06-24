@@ -124,15 +124,14 @@ For **PDFs with figures**, `images` is populated:
 
 ## Behavior
 
-- Model temperature is set to 0 for deterministic output.
 - If `extractions/<source-id>.json` already exists and `--force` is not set:
   skip and notify.
 - On LLM failure or schema validation error: write `.failed.json` with the
   error. Never leave a partial extraction without marking it failed.
 - Large sources are chunked. Chunks are extracted independently and merged.
   Provenance (`source_ref`, `page`) is preserved per chunk.
-- `schema_version` in the output must match the version in `lib/schema.py`.
-  Downstream skills check this field.
+- `schema_version` in the output must match the version defined in
+  `write_extraction.py`. Downstream skills check this field.
 
 ---
 
@@ -142,6 +141,5 @@ Python scripts handle:
 - PDF text and image extraction (e.g. `pdfplumber`, `pymupdf`)
 - CSV/DB schema introspection
 - Source chunking for large files
-- LLM API calls with retry and temperature=0
-- Output validation against `lib/schema.py`
+- Output validation against the schema in `write_extraction.py`
 - Writing `.failed.json` on error

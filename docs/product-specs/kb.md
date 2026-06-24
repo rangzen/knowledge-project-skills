@@ -47,8 +47,10 @@ kb/
 ├── concepts/<topic>.md
 ├── people/<topic>.md
 ├── organizations/<topic>.md
+├── places/<topic>.md
+├── products/<topic>.md
 ├── events/<topic>.md
-└── topics/<topic>.md
+└── other/<topic>.md
 ```
 
 ### `kb/index.yaml` schema

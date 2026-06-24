@@ -12,7 +12,6 @@ the primary artifact is structured knowledge extracted from sources, not code.
 Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 → Full description: [README.md](README.md)
-→ Product vision: [docs/PRODUCT_SENSE.md](docs/PRODUCT_SENSE.md)
 
 ---
 
@@ -51,14 +50,6 @@ Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 ---
 
-## Quality, reliability, security
-
-→ [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md) — grades per domain, gap tracking
-→ [docs/RELIABILITY.md](docs/RELIABILITY.md) — failure modes, graceful degradation
-→ [docs/SECURITY.md](docs/SECURITY.md) — threat model, sensitive data handling
-
----
-
 ## Product specs
 
 → [docs/product-specs/index.md](docs/product-specs/index.md) — all specs indexed
@@ -67,7 +58,7 @@ Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 ## References
 
-→ [docs/references/agentskills-io.md](docs/references/agentskills-io.md) — Agent Skills format spec (skill folder structure, SKILL.md, installation per agent)
+→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) — Agent Skills format spec (skill folder structure, SKILL.md, installation per agent)
 → [docs/references/](docs/references/) — all external reference material
 
 ---
@@ -79,7 +70,7 @@ Some skills include a `scripts/` directory with Python scripts for reproducible 
 When scripts exist, use them rather than generating equivalent code inline.
 
 → [ARCHITECTURE.md](ARCHITECTURE.md) — skill layout and knowledge pipeline
-→ [docs/references/agentskills-io.md](docs/references/agentskills-io.md) — format spec and installation per agent
+→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) — format spec and installation per agent
 
 ---
 

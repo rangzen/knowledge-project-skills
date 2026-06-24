@@ -23,7 +23,7 @@ using only agent commands with no manual JSON editing.
 /init
 ```
 
-Creates the directory scaffolding: `sources/`, `extractions/`, `glossary/`,
+Creates the directory scaffolding: `sources/`, `extractions/`,
 `kb/`, `kb/questions/`, `.knowledge-project`.
 
 Expected output:

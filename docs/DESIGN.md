@@ -15,8 +15,10 @@ skip stages.
 
 ### Deterministic outputs
 Given the same source and the same model/version, `extract` should produce
-the same output. Nondeterminism is a bug, not a feature. Model temperature
-is set to 0 by default for extraction.
+the same output. Nondeterminism is a bug, not a feature. The extract skill
+prompt instructs the agent to produce consistent, structured output; there is
+no script-level temperature control because extraction runs inside the agent
+rather than via a separate API call.
 
 ### Graceful degradation
 A missing extraction does not break `kb build`. Each skill degrades gracefully and communicates clearly
@@ -33,8 +35,9 @@ same input must produce the same output across different assistants, runs, or
 model versions.
 
 ### Schema-first extraction
-The `extractions/<source-id>.json` schema is defined up front and versioned in
-`lib/schema.py`. Extractors conform to it. The schema version is recorded in
+The `extractions/<source-id>.json` schema is defined up front in
+`skills/extract/SKILL.md` (Output schema section) and enforced by
+`skills/extract/scripts/write_extraction.py`. The schema version is recorded in
 every output file so downstream tools can detect and handle breaking changes.
 
 ---

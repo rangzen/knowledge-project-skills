@@ -46,12 +46,12 @@ sources/
   "hash": "sha256:<hex>",
   "page_count": 42,
   "sensitive": false,
-  "extracted": false,
+  "extraction": {"status": "pending"},
   "stale": false
 }
 ```
 
-`type` values: `pdf` | `csv` | `url` | `db-dump` | `markdown` | `image` | `other`
+`type` values: `pdf` | `csv` | `markdown` | `image` | `db-dump` | `text` | `word` | `excel` | `powerpoint` | `odt` | `ods` | `odp` | `other`
 
 ---
 
