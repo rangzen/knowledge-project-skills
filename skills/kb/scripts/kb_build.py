@@ -296,23 +296,29 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
     print(f"  Written: kb/index.yaml")
 
 
-def validate_wikilinks(root: Path) -> None:
+def _wikilink_target(link: str) -> str:
+    """Extract the link target from a wikilink, stripping alias and anchor."""
+    return link.split("|")[0].split("#")[0].strip()
+
+
+def validate_wikilinks(root: Path) -> list[tuple[Path, str]]:
     kb = root / "kb"
     broken = []
     for md_file in kb.rglob("*.md"):
         text = md_file.read_text()
         for link in re.findall(r"\[\[([^\]]+)\]\]", text):
-            name = link.split("]")[0]
-            slug = slugify(name)
+            target = _wikilink_target(link)
+            slug = slugify(target)
             matches = list(kb.rglob(f"{slug}.md"))
-            if not matches and name.lower() not in ("glossary",):
-                broken.append((md_file.relative_to(root), name))
+            if not matches and target.lower() not in ("glossary",):
+                broken.append((md_file.relative_to(root), link))
     if broken:
         print(f"\n  Warnings — broken wikilinks ({len(broken)}):")
         for path, link in broken[:10]:
             print(f"    {path}: [[{link}]]")
         if len(broken) > 10:
             print(f"    ... and {len(broken) - 10} more")
+    return broken
 
 
 def main():

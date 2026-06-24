@@ -14,7 +14,7 @@ Source of truth: `caveats-kb.md` at repo root.
 
 - [ ] [01 — Entity filtering before page generation](01-entity-filtering.md)
 - [ ] [02 — Smarter entity resolution](02-entity-resolution.md)
-- [ ] [03 — Wikilink validator fix](03-wikilink-validation.md)
+- [x] [03 — Wikilink validator fix](03-wikilink-validation.md)
 - [ ] [04 — Link generation consistency](04-link-generation.md)
 - [ ] [05 — Glossary quality](05-glossary-quality.md)
 - [ ] [06 — Stale KB spec path reference](06-stale-spec-reference.md)
