@@ -1,0 +1,30 @@
+project: knowledge-project-skills
+version: "1.0"
+
+pipeline:
+  ingestion:
+    supported_formats:
+      - pdf
+      - docx
+      - xlsx
+      - csv
+      - json
+      - yaml
+      - md
+    hash_algorithm: sha256
+  extract:
+    model: claude-sonnet-4-6
+    max_entities: 200
+    output_dir: extractions
+  kb:
+    output_dir: kb
+    glossary: true
+    wikilinks: true
+
+sources:
+  - id: src-001
+    path: sources/src-001
+    format: pdf
+  - id: src-002
+    path: sources/src-002
+    format: csv

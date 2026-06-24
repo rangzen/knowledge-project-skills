@@ -1,0 +1,10 @@
+{
+  "project": "knowledge-project-skills",
+  "version": "1.0",
+  "settings": {
+    "max_sources": 100,
+    "extract_model": "claude-sonnet-4-6",
+    "output_dir": "extractions"
+  },
+  "supported_formats": ["pdf", "docx", "xlsx", "csv", "json", "yaml", "md"]
+}

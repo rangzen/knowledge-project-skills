@@ -1,36 +1,27 @@
 # Knowledge Project Skills
 
-A collection of reusable AI agent skills for **knowledge projects** — projects where
-you already have documentation and want to prepare and extract it into structured,
-queryable form so it is easier to use, search, and reason over.
+A collection of reusable AI agent skills for **knowledge projects** — projects that
+start with existing documentation and treat it as raw material. The goal is to
+**progressively extract, organize, and surface** the knowledge inside so agents and
+humans can use it without reading everything.
 
-Designed to work with Claude Code, Cursor, Codex, and similar AI coding assistants.
+The pipeline ingests sources, extracts entities, concepts, names, and facts using an
+LLM, then builds a navigable wiki you can query. The primary target is not code
+generation — it is structured knowledge: entities, facts, relationships, timelines,
+summaries, and a navigable wiki built from what was already written.
 
-Some skills include Python scripts for operations that must be reproducible across
-assistants and runs — parsing source files, running extractors, writing structured
-output. When a skill ships scripts, they live in its `scripts/` directory and are
-Python. Not every skill needs scripts; agent reasoning alone is sufficient for
-operations that are naturally conversational.
+Some formats need preprocessing scripts to surface text and metadata a plain read
+would miss (page boundaries, table structure, cell types). For those, skills ship
+Python scripts in their `scripts/` directory. Plain-text formats are read directly.
+
+Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 [AI Research OS](https://github.com/iusztinpaul/ai-research-os-workshop) uses very
 similar concepts, so names are intentionally chosen to be compatible with that
 project's vocabulary. It predates this project, and several conventions here
 (the skills scripts structure, for example) are borrowed from it.
 
----
-
-## What is a knowledge project?
-
-A knowledge project starts with existing documentation — PDFs, database exports,
-internal wikis, research papers, transcripts — and treats it as raw material.
-The goal is to **progressively extract, organize, and surface** the knowledge
-inside that material so agents and humans can use it without reading everything.
-
-The primary target is not code generation.
-It is structured knowledge: entities, facts, relationships, timelines, summaries,
-and a navigable wiki built from what was already written.
-
-Examples:
+Examples of knowledge projects:
 - A product team with scattered specs and ADRs who wants a queryable knowledge base
 - Competitive intelligence from earnings calls, filings, and analyst reports
 - Research synthesis across hundreds of papers
@@ -98,6 +89,30 @@ project-root/
 │   └── <topic>.md        # One page per entity or concept (wikilinks throughout)
 └── .knowledge-project    # Project config and schema version
 ```
+
+---
+
+## Workflow
+
+```mermaid
+flowchart TD
+    A(["/init"]) --> B["sources/"]
+    C(["/ingestion add"]) --> B
+    B --> D(["/extract"])
+    D --> E["extractions/*.json"]
+    E --> F(["/kb build"])
+    G["kb/questions/"] -->|compound knowledge| F
+    F --> H["kb/"]
+    H --> I(["/query"])
+    I --> G
+
+    classDef skill fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef artifact fill:#f0fdf4,stroke:#16a34a,color:#14532d
+    class A,C,D,F,I skill
+    class B,E,H,G artifact
+```
+
+Skills are shown in blue, file artifacts in green. The feedback loop from `/query` back into `/kb build` is what makes the KB improve incrementally over time.
 
 ---
 

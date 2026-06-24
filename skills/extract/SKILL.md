@@ -10,7 +10,7 @@ description: >
   Project Skills) — also activate when the user says "kps extract".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.4"
+  version: "1.8"
   project: knowledge-project-skills
 ---
 
@@ -38,21 +38,33 @@ process, or asks to extract, analyze, or process a source document.
 Read `sources/<source-id>/.meta.json` to get `type` and locate the source
 file in `sources/<source-id>/`.
 
-**Stage 1 — Preprocess (script):** convert the source file to clean text.
+**Stage 1 — Preprocess:** give the LLM the best possible input — source
+content plus any structural metadata (page count, column names, row count, etc.)
+that orients extraction. Three tiers:
 
-| Format | Preprocessor |
+**Dedicated scripts** — use these when available:
+
+| Format | Script |
 |---|---|
-| PDF | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file>` |
-| Markdown / plain text | Read the file directly — no script needed |
-| Other formats | (see issue 06 — not yet implemented) |
+| PDF (`.pdf`) | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file>` |
+| DOCX (`.docx`) | `uv run <skill-dir>/scripts/preprocess_docx.py <source-file>` |
+| Excel (`.xlsx`, `.xls`) | `uv run <skill-dir>/scripts/preprocess_excel.py <source-file>` |
+| CSV (`.csv`) | `uv run <skill-dir>/scripts/preprocess_csv.py <source-file>` |
+| JSON (`.json`) | `uv run <skill-dir>/scripts/preprocess_json.py <source-file>` |
+| YAML (`.yaml`, `.yml`) | `uv run <skill-dir>/scripts/preprocess_yaml.py <source-file>` |
 
-The preprocessor prints a JSON payload to stdout:
+Scripts print a JSON payload to stdout:
 ```json
-{"text": "...", "metadata": {"format": "pdf", "source_ref": "sources/src-001/file.pdf", "pages": 10}}
+{"text": "...", "metadata": {"format": "csv", "source_ref": "...", "columns": ["name", "age"], "column_count": 2, "row_count": 150}}
 ```
 
-For unsupported formats, report the error to the user rather than attempting
-extraction.
+**Direct read** — for formats that are already plain text (Markdown, plain text,
+Mermaid, and similar). Read the file as-is; no script needed.
+
+**Ad-hoc** — for any other format, do not fail. Attempt to read the file
+directly. If the content is not usable as-is, write a small inline script to
+extract what is accessible, note what could not be extracted, and proceed with
+whatever text is available.
 
 **Stage 2 — Extract (agent):** use the preprocessed text to produce the
 extraction JSON by following the prompt template below. This step is
@@ -142,16 +154,39 @@ Preserve `source_ref` and `page` per fact.
 
 #### `preprocess_pdf.py <source-file>`
 
-Reads a PDF and emits a JSON payload on stdout. No side effects.
+Extracts text from a PDF with page markers.
 
-```
-uv run <skill-dir>/scripts/preprocess_pdf.py sources/src-001/report.pdf
-```
+Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10}}`
 
-Output:
-```json
-{"text": "...", "metadata": {"format": "pdf", "source_ref": "sources/src-001/report.pdf", "pages": 10}}
-```
+#### `preprocess_docx.py <source-file>`
+
+Extracts paragraphs and tables from a Word document.
+
+Output: `{"text": "...", "metadata": {"format": "docx", "source_ref": "...", "paragraphs": 42, "tables": 3}}`
+
+#### `preprocess_excel.py <source-file>`
+
+Extracts sheet contents as text tables. Metadata includes sheet count and total row count.
+
+Output: `{"text": "...", "metadata": {"format": "xlsx", "source_ref": "...", "sheets": 2, "rows": 500}}`
+
+#### `preprocess_csv.py <source-file>`
+
+Passes content through unchanged. Extracts column names, column count, row count, and a per-column profile: inferred type (numeric, boolean, text), min/max for numeric columns, and enum values for low-cardinality text columns.
+
+Output: `{"text": "<raw csv>", "metadata": {"format": "csv", "source_ref": "...", "columns": ["name", "age"], "column_count": 2, "row_count": 150, "profile": [...]}}`
+
+#### `preprocess_json.py <source-file>`
+
+Passes content through unchanged. Extracts the structural shape of the document: key names, value types, and array item shapes up to depth 4. Helps the LLM understand the schema before reading the full content.
+
+Output: `{"text": "<raw json>", "metadata": {"format": "json", "source_ref": "...", "shape": {...}}}`
+
+#### `preprocess_yaml.py <source-file>`
+
+Same as `preprocess_json.py` but for YAML files. Parses with `pyyaml` and extracts the same structural shape.
+
+Output: `{"text": "<raw yaml>", "metadata": {"format": "yaml", "source_ref": "...", "shape": {...}}}`
 
 #### `write_extraction.py --source-id <id> [options]`
 

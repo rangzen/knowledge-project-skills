@@ -122,19 +122,23 @@ is a constraint, not the target.
 
 ---
 
-## 10. Python scripts when reproducibility is needed
+## 10. Three tiers of source handling — no hard failures
 
-Some skills ship Python scripts for operations that must produce the same result
-every time: parsing a PDF, running an extractor, writing structured JSON output.
-When a skill has a `scripts/` directory, those scripts are Python and should be
-used rather than generating equivalent logic ad hoc.
+Sources fall into three tiers based on what is already known about them:
 
-Not every skill needs scripts. The choice is per-skill, based on whether the
-operation is reproducible-by-nature (agent reasoning, summarization) or
-reproducible-by-requirement (file parsing, schema-validated output).
+1. **Dedicated scripts**: PDF, DOCX, Excel, CSV, JSON. Scripts exist that
+   extract content and structural metadata (page count, column names, row count,
+   etc.) in a reproducible way. Always use them.
+2. **Direct read**: plain-text formats (Markdown, plain text, Mermaid, and
+   similar). Already readable as-is; no script needed.
+3. **Ad-hoc**: any other format. Attempt a direct read first. If the content is
+   not usable, write a small inline script to extract what is accessible and
+   note what could not be extracted. Never refuse on the grounds that a format
+   has no dedicated script.
 
-**Implication**: When a skill script exists, use it. Do not generate parsing or
-extraction code inline — the script is the tested, consistent version.
+**Implication**: The pipeline never has a hard "unsupported format" failure.
+Every source gets a best-effort extraction attempt. Dedicated scripts are the
+preferred path when available; ad-hoc handling is the fallback, not a dead end.
 
 ---
 

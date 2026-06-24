@@ -15,7 +15,7 @@ Ship one preprocessor script per supported format. Each script outputs clean, LL
 | PDF | `preprocess_pdf.py` | Already exists as `extract_pdf.py`; adapt to interface |
 | DOCX | `preprocess_docx.py` | Use `python-docx` to extract paragraphs and tables |
 | Excel (xlsx/xls) | `preprocess_excel.py` | Use `openpyxl`; emit sheet names + cell ranges as structured text |
-| Markdown | `preprocess_text.py` | Read as-is; strip front matter if present |
+| Markdown | `preprocess_text.py` | Read as-is; preserve front matter (valuable metadata) |
 | Plain text | `preprocess_text.py` | Shared with markdown |
 | Mermaid | `preprocess_text.py` | Read as-is; tag as diagram source in metadata |
 | Obsidian vault | `preprocess_obsidian.py` | Flatten wikilinks to plain text; strip `[[` / `]]` syntax; emit one doc per note file |

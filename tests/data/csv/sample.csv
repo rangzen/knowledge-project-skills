@@ -1,0 +1,11 @@
+name,age,city,score,active
+Alice,30,Paris,95.5,true
+Bob,25,Paris,87.3,false
+Carol,35,Lyon,92.1,true
+David,28,Paris,88.7,true
+Eve,32,Lyon,91.2,false
+Frank,29,Lyon,85.0,true
+Grace,31,Berlin,94.3,false
+Hugo,27,Berlin,89.1,true
+Iris,33,Paris,90.8,true
+Jack,26,Lyon,86.4,false
