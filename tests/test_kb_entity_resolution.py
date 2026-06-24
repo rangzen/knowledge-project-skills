@@ -148,3 +148,49 @@ class TestConfidenceThreshold:
             confidence_threshold=0.5,
         )
         assert len(entities) == 1
+
+
+def _entity_with_body(name: str, body: str, etype: str = "concept") -> dict:
+    e = _entity(name, etype)
+    e["body"] = body
+    return e
+
+
+class TestBodyCollection:
+    def test_entity_with_body_collects_one_entry(self):
+        entities, _ = resolve_entities([_ext("s1", [_entity_with_body("Combat", "## Rules\nFight.")])])
+        assert len(entities[0]["_bodies"]) == 1
+        assert entities[0]["_bodies"][0]["source"] == "s1"
+        assert "Fight." in entities[0]["_bodies"][0]["body"]
+
+    def test_entity_without_body_has_empty_bodies(self):
+        entities, _ = resolve_entities([_ext("s1", [_entity("Alpha")])])
+        assert entities[0]["_bodies"] == []
+
+    def test_same_entity_two_sources_both_with_body(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity_with_body("Combat", "Body from s1.")]),
+            _ext("s2", [_entity_with_body("Combat", "Body from s2.")]),
+        ])
+        assert len(entities) == 1
+        assert len(entities[0]["_bodies"]) == 2
+        sources = {b["source"] for b in entities[0]["_bodies"]}
+        assert sources == {"s1", "s2"}
+
+    def test_same_entity_only_first_source_has_body(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity_with_body("Combat", "Body from s1.")]),
+            _ext("s2", [_entity("Combat")]),
+        ])
+        assert len(entities) == 1
+        assert len(entities[0]["_bodies"]) == 1
+        assert entities[0]["_bodies"][0]["source"] == "s1"
+
+    def test_same_entity_only_second_source_has_body(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity("Combat")]),
+            _ext("s2", [_entity_with_body("Combat", "Body from s2.")]),
+        ])
+        assert len(entities) == 1
+        assert len(entities[0]["_bodies"]) == 1
+        assert entities[0]["_bodies"][0]["source"] == "s2"

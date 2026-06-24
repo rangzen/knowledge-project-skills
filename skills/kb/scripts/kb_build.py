@@ -76,10 +76,13 @@ def resolve_entities(
                     })
                 elif source_id not in existing["_sources"]:
                     existing["_sources"].append(source_id)
+                    if entity.get("body"):
+                        existing.setdefault("_bodies", []).append({"source": source_id, "body": entity["body"]})
             else:
                 merged = dict(entity)
                 merged["_sources"] = [source_id]
                 merged.setdefault("aliases", [])
+                merged["_bodies"] = [{"source": source_id, "body": entity["body"]}] if entity.get("body") else []
                 seen[key] = merged
 
     # Alias-based merge: if A has alias matching B's name, absorb B into A.
@@ -299,8 +302,18 @@ def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
         f"last_built: {datetime.now(timezone.utc).date()}\n"
         f"---\n\n"
         f"# {entity['name']}\n\n"
-        f"{entity['context']}\n\n"
-        f"**Type:** {entity['type']}  \n"
+        f"{entity['context']}\n"
+    )
+
+    bodies = entity.get("_bodies", [])
+    if len(bodies) == 1:
+        content += f"\n{bodies[0]['body']}\n"
+    elif len(bodies) > 1:
+        for b in bodies:
+            content += f"\n### From {b['source']}\n\n{b['body']}\n"
+
+    content += (
+        f"\n**Type:** {entity['type']}  \n"
         f"**Sources:** {', '.join(entity['_sources'])}\n"
     )
 

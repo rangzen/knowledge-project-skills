@@ -115,6 +115,17 @@ last_built: 2026-06-21
 ---
 ```
 
+### Entity page body
+
+When an extraction includes a `body` field on an entity, the page content is:
+
+1. `context` — the one-liner, written as the lead paragraph under the heading.
+2. `body` — the full markdown content (rules, tables, examples) appended after the lead paragraph.
+
+If the same entity has `body` content from multiple sources, each body is rendered
+under a `### From <source-id>` sub-heading. Entities with no `body` render the
+context one-liner only (unchanged behavior).
+
 ---
 
 ### Link policy
