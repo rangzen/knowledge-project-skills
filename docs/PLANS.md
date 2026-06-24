@@ -5,6 +5,7 @@ Plans are first-class artifacts in this repository.
 → Active plans: [exec-plans/active/](exec-plans/active/)
 → Completed plans: [exec-plans/completed/](exec-plans/completed/)
 → Known tech debt: [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md)
+→ Feature backlog: [backlog.md](backlog.md)
 
 ---
 
