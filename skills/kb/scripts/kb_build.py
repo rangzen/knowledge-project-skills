@@ -324,7 +324,16 @@ def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) ->
     print(f"  Written: kb/index.md")
 
 
-def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], key_facts: list[dict], stubs: list[str]) -> None:
+def write_index_yaml(
+    root: Path,
+    entities: list[dict],
+    extractions: list[dict],
+    key_facts: list[dict],
+    stubs: list[str],
+    quality_map: dict[str, str] | None = None,
+    filtered_count: int = 0,
+    broken_wikilink_count: int = 0,
+) -> None:
     gaps: dict[str, dict] = {}
     for qfile in sorted((root / "kb" / "questions").glob("*.md")):
         text = qfile.read_text()
@@ -346,6 +355,8 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
     for entity in entities:
         by_type.setdefault(entity["type"], []).append(entity)
 
+    effective_quality_map = quality_map or {}
+
     pages_yaml: dict[str, list[dict]] = {}
     type_order = ["concept", "person", "organization", "place", "product", "event", "other"]
     for etype in type_order:
@@ -357,17 +368,27 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
                 "title": entity["name"],
                 "file": f"{dir_name}/{slug}.md",
                 "sources": entity["_sources"],
+                "quality": _entity_quality(entity, effective_quality_map),
             }
             if entity.get("aliases"):
                 entry["aliases"] = entity["aliases"]
             entries.append(entry)
         pages_yaml[f"{dir_name}"] = entries
 
+    entity_quality_grade = _overall_entity_quality(entities, filtered_count, effective_quality_map)
+    quality_block = {
+        "entity_quality": entity_quality_grade,
+        "broken_wikilinks": broken_wikilink_count,
+        "skipped_low_confidence_entities": filtered_count,
+        "glossary_stubs": len(stubs),
+    }
+
     index = {
         "schema_version": "1",
         "last_built": datetime.now(timezone.utc).isoformat(),
         "source_count": len(extractions),
         "entity_count": len(entities),
+        "quality": quality_block,
         "glossary": "glossary.md",
         "glossary_stubs": stubs,
         "pages": pages_yaml,
@@ -410,6 +431,102 @@ def write_index_yaml(root: Path, entities: list[dict], extractions: list[dict], 
     yaml_text = to_yaml(index)
     (root / "kb" / "index.yaml").write_text(yaml_text + "\n")
     print(f"  Written: kb/index.yaml")
+
+
+def scan_extraction_quality(extractions: list[dict]) -> dict:
+    """Scan extractions for quality signals. Returns a summary dict."""
+    total = len(extractions)
+    with_warnings = 0
+    with_low_coverage = 0
+    with_no_entities = 0
+    for ext in extractions:
+        q = ext.get("quality", {})
+        if q.get("flags"):
+            with_warnings += 1
+        coverage = q.get("text_coverage")
+        if coverage is not None and coverage < 0.5:
+            with_low_coverage += 1
+        if not ext.get("entities"):
+            with_no_entities += 1
+    return {
+        "total": total,
+        "sources_with_warnings": with_warnings,
+        "sources_with_low_coverage": with_low_coverage,
+        "sources_with_no_entities": with_no_entities,
+    }
+
+
+def _extraction_quality_map(extractions: list[dict]) -> dict[str, str]:
+    """Build source_id -> quality_level ('ok' | 'warning' | 'low') mapping."""
+    mapping = {}
+    for ext in extractions:
+        source_id = ext["source_id"]
+        q = ext.get("quality", {})
+        flags = q.get("flags", [])
+        if not flags:
+            mapping[source_id] = "ok"
+        elif "no_text" in flags or len(flags) >= 2:
+            mapping[source_id] = "low"
+        else:
+            mapping[source_id] = "warning"
+    return mapping
+
+
+def _entity_quality(entity: dict, quality_map: dict[str, str]) -> str:
+    """Derive entity quality from the worst quality of its contributing sources."""
+    levels = [quality_map.get(src, "ok") for src in entity.get("_sources", [])]
+    if "low" in levels:
+        return "low"
+    if "warning" in levels:
+        return "warning"
+    return "ok"
+
+
+def _overall_entity_quality(
+    entities: list[dict],
+    filtered_count: int,
+    quality_map: dict[str, str],
+) -> str:
+    """Derive overall entity quality grade based on flagged + filtered ratio."""
+    flagged = sum(1 for e in entities if _entity_quality(e, quality_map) != "ok")
+    total = len(entities) + filtered_count
+    if total == 0:
+        return "ok"
+    ratio = (flagged + filtered_count) / total
+    if ratio > 0.25:
+        return "low"
+    if ratio >= 0.05:
+        return "warning"
+    return "ok"
+
+
+def _build_overall_quality(extraction_quality: dict) -> str:
+    """Derive overall build quality from extraction summary."""
+    total = extraction_quality["total"]
+    if total == 0:
+        return "ok"
+    ratio = extraction_quality["sources_with_warnings"] / total
+    if ratio > 0.25:
+        return "low"
+    if ratio > 0:
+        return "warning"
+    return "ok"
+
+
+def write_build_report(root: Path, extraction_quality: dict, overall_quality: str) -> None:
+    recommendation = (
+        "Re-extract flagged sources before distributing this KB."
+        if overall_quality != "ok"
+        else "No action required."
+    )
+    report = {
+        "build_date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "sources_total": extraction_quality["total"],
+        "sources_with_warnings": extraction_quality["sources_with_warnings"],
+        "overall_quality": overall_quality,
+        "recommendation": recommendation,
+    }
+    (root / "kb" / "build-report.json").write_text(json.dumps(report, indent=2) + "\n")
 
 
 def _candidate_stoplist_entries(entities: list[dict]) -> list[str]:
@@ -471,6 +588,16 @@ def main():
             if not is_extracted:
                 print(f"Warning: {source_dir.name} has not been extracted yet.")
 
+    extraction_quality = scan_extraction_quality(extractions)
+    print(f"Extraction quality summary:")
+    print(f"  {extraction_quality['total']} sources total")
+    if extraction_quality["sources_with_no_entities"]:
+        print(f"  {extraction_quality['sources_with_no_entities']} with low entity count")
+    if extraction_quality["sources_with_low_coverage"]:
+        print(f"  {extraction_quality['sources_with_low_coverage']} with low text coverage")
+    flagged_sources = extraction_quality["sources_with_warnings"]
+    print(f"  {flagged_sources} failed extraction(s)" if flagged_sources else "  0 failed extractions")
+
     print(f"Building KB from {len(extractions)} extraction(s)...")
 
     entities, conflicts = resolve_entities(extractions, confidence_threshold=args.confidence)
@@ -485,6 +612,7 @@ def main():
     if filtered_count:
         print(f"  Filtered {filtered_count} low-value entities before page generation.")
 
+    quality_map = _extraction_quality_map(extractions)
     key_facts = collect_key_facts(extractions)
 
     for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
@@ -499,8 +627,17 @@ def main():
     print(f"  Written: {page_count} entity pages")
 
     write_index_md(root, entities, extractions)
-    write_index_yaml(root, entities, extractions, key_facts, stubs)
-    validate_wikilinks(root)
+    broken = validate_wikilinks(root)
+    write_index_yaml(
+        root, entities, extractions, key_facts, stubs,
+        quality_map=quality_map,
+        filtered_count=filtered_count,
+        broken_wikilink_count=len(broken),
+    )
+
+    overall_quality = _build_overall_quality(extraction_quality)
+    write_build_report(root, extraction_quality, overall_quality)
+    print(f"  Written: kb/build-report.json (overall_quality: {overall_quality})")
 
     stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
     candidates = _candidate_stoplist_entries(entities)
@@ -518,6 +655,12 @@ def main():
     print(f"  Tip: edit kb/config/entity_stoplist.txt to suppress low-value entities.")
 
     print(f"\nDone. {len(entities)} entities across {len(extractions)} source(s).")
+    if overall_quality != "ok":
+        bad = extraction_quality["sources_with_warnings"]
+        total = extraction_quality["total"]
+        print(f"\nKB build completed with warnings.")
+        print(f"Cause: {bad} of {total} source(s) have low-quality extractions.")
+        print(f"Recommendation: re-run /extract with --force on flagged sources before distributing this KB.")
 
 
 if __name__ == "__main__":
