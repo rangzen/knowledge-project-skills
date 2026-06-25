@@ -267,7 +267,49 @@ def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict
     return stubs
 
 
-def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
+def _build_slug_map(entities: list[dict]) -> dict[str, tuple[str, str]]:
+    """Return {lowercase_name: (slug, display_name)} for every entity name and alias."""
+    slug_map: dict[str, tuple[str, str]] = {}
+    for entity in entities:
+        slug = entity.get("_slug", slugify(entity["name"]))
+        slug_map[entity["name"].lower()] = (slug, entity["name"])
+        for alias in entity.get("aliases", []):
+            slug_map[alias.lower()] = (slug, alias)
+    return slug_map
+
+
+def _inject_wikilinks(text: str, slug_map: dict[str, tuple[str, str]], own_slug: str) -> str:
+    """Replace the first occurrence of each known entity name in text with [[slug|Name]].
+
+    Longest names are matched first to prevent partial substitution (e.g. "Into the Odd"
+    before "Odd"). Names already inside a [[...]] block and the page's own entity are
+    skipped. Matching is case-insensitive; the display name from slug_map is always used.
+    """
+    for name in sorted(slug_map, key=len, reverse=True):
+        slug, display = slug_map[name]
+        if slug == own_slug:
+            continue
+
+        first = [True]
+        snapshot = text
+
+        def replacer(m, _first=first, _snapshot=snapshot, _slug=slug, _display=display):
+            if not _first[0]:
+                return m.group(0)
+            before = _snapshot[: m.start()]
+            if before.count("[[") > before.count("]]"):
+                return m.group(0)
+            _first[0] = False
+            return f"[[{_slug}|{_display}]]"
+
+        text = re.sub(r"\b" + re.escape(name) + r"\b", replacer, text, flags=re.IGNORECASE)
+
+    return text
+
+
+def write_entity_page(
+    root: Path, entity: dict, mode: str, slug_map: dict[str, tuple[str, str]] | None = None
+) -> Path:
     etype = entity_type_dir(entity["type"])
     slug = entity.get("_slug", slugify(entity["name"]))
     page_dir = root / "kb" / etype
@@ -293,6 +335,10 @@ def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
 
     sources_yaml = "\n".join(f"  - {s}" for s in entity["_sources"])
 
+    def _link(t: str) -> str:
+        return _inject_wikilinks(t, slug_map, slug) if slug_map else t
+
+    context = _link(entity["context"])
     content = (
         f"---\n"
         f"title: {entity['name']}\n"
@@ -302,15 +348,15 @@ def write_entity_page(root: Path, entity: dict, mode: str) -> Path:
         f"last_built: {datetime.now(timezone.utc).date()}\n"
         f"---\n\n"
         f"# {entity['name']}\n\n"
-        f"{entity['context']}\n"
+        f"{context}\n"
     )
 
     bodies = entity.get("_bodies", [])
     if len(bodies) == 1:
-        content += f"\n{bodies[0]['body']}\n"
+        content += f"\n{_link(bodies[0]['body'])}\n"
     elif len(bodies) > 1:
         for b in bodies:
-            content += f"\n### From {b['source']}\n\n{b['body']}\n"
+            content += f"\n### From {b['source']}\n\n{_link(b['body'])}\n"
 
     content += (
         f"\n**Type:** {entity['type']}  \n"
@@ -766,9 +812,10 @@ def main():
 
     stubs = write_glossary(root, entities, args.mode, key_facts)
 
+    slug_map = _build_slug_map(entities)
     page_count = 0
     for entity in entities:
-        write_entity_page(root, entity, args.mode)
+        write_entity_page(root, entity, args.mode, slug_map)
         page_count += 1
     print(f"  Written: {page_count} entity pages")
 
