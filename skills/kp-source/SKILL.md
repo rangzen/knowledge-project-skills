@@ -1,15 +1,15 @@
 ---
-name: ingestion
+name: kp-source
 description: >
   Add sources to a knowledge project, check for updates, and track provenance.
-  Use when the user runs /ingestion, wants to add a PDF, URL, CSV, database dump,
+  Use when the user runs /kp-source, wants to add a PDF, URL, CSV, database dump,
   or any document to sources/, needs to check the status of ingested sources,
   or wants to detect whether a previously ingested source has changed. "kps"
-  is the short name for this project (Knowledge Project Skills) — also
+  is the short name for this project (Knowledge Project Skills) - also
   activate when the user says "kps ingestion" or "kps ingest".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.4"
+  version: "1.5"
   project: knowledge-project-skills
 ---
 
@@ -17,8 +17,8 @@ metadata:
 
 ### When to activate
 
-Activate when the user invokes `/ingestion add`, `/ingestion status`,
-or `/ingestion check-updates`, or asks to add a document or source file
+Activate when the user invokes `/kp-source add`, `/kp-source status`,
+or `/kp-source check-updates`, or asks to add a document or source file
 to the project.
 
 ---
@@ -32,7 +32,7 @@ to the project.
 1. Run `<skill-dir>/scripts/ingest.py --list-dir <path>` to discover files.
    The script walks recursively (skipping hidden files and dirs), hashes each
    file, and checks against existing sources for duplicates. All file types
-   are included — no extension filtering.
+   are included - no extension filtering.
 2. Count files where `duplicate_of` is `null` (new files to ingest).
 3. If that count exceeds the threshold (default 50, override with `--threshold N`):
    ```
@@ -56,7 +56,7 @@ to the project.
      (e.g. `cairn-annual-report`, `privacy-policy-2024`).
    - For YouTube URLs, derive the slug from the video title if available, or
      fall back to `youtube-<video-id>` (e.g. `youtube-dQw4w9WgXcQ`).
-   - Keep it concise: 2–4 meaningful words, lowercase, hyphens only.
+   - Keep it concise: 2-4 meaningful words, lowercase, hyphens only.
    - Check uniqueness against existing directory names in `sources/`.
    - If the slug already exists, append `-2`, `-3`, etc. until unique.
 2. Create `sources/<source-id>/`.
@@ -122,6 +122,6 @@ For each source in `sources/`:
 - URL download fails: report the error, do not create a partial `sources/<source-id>/`.
 - YouTube transcript unavailable (private video, no captions): `fetch_youtube.py` exits non-zero; report the error and do not create a partial source directory.
 - File not found: report clearly, suggest checking the path.
-- Project not initialized (`.knowledge-project` missing): prompt the user to run `/init` first.
+- Project not initialized (`.knowledge-project` missing): prompt the user to run `/kp-init` first.
 - Empty directory: report zero files found.
 - Duplicate file in directory input: log it in the summary (`Duplicate: N`) with the existing `source-id`; do not re-ingest.
