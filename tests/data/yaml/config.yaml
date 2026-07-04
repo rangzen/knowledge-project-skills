@@ -15,9 +15,9 @@ pipeline:
   extract:
     model: claude-sonnet-4-6
     max_entities: 200
-    output_dir: extractions
+    output_dir: staging
   kb:
-    output_dir: kb
+    output_dir: wiki
     glossary: true
     wikilinks: true
 

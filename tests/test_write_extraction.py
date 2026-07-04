@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/extract/scripts/write_extraction.py"
+SCRIPT = Path(__file__).parent.parent / "skills/kp-staging/scripts/write_extraction.py"
 spec = importlib.util.spec_from_file_location("write_extraction", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
@@ -133,7 +133,7 @@ class TestWriteExtractionIntegration:
             "extraction": {"status": "pending"},
             "stale": False,
         }))
-        (tmp_path / "extractions").mkdir()
+        (tmp_path / "staging").mkdir()
 
         data = _extraction()
         result = subprocess.run(
@@ -145,7 +145,7 @@ class TestWriteExtractionIntegration:
         )
         assert result.returncode == 0, result.stderr
 
-        out = json.loads((tmp_path / "extractions" / "src-001.json").read_text())
+        out = json.loads((tmp_path / "staging" / "src-001.json").read_text())
         assert "quality" in out
         assert isinstance(out["quality"]["flags"], list)
         assert isinstance(out["quality"]["warnings"], list)
@@ -173,7 +173,7 @@ class TestWriteExtractionIntegration:
             "extraction": {"status": "pending"},
             "stale": False,
         }))
-        (tmp_path / "extractions").mkdir()
+        (tmp_path / "staging").mkdir()
 
         data = _extraction(entities=[])
         result = subprocess.run(
@@ -184,6 +184,6 @@ class TestWriteExtractionIntegration:
             cwd=str(tmp_path),
         )
         assert result.returncode == 0, result.stderr
-        assert (tmp_path / "extractions" / "src-002.json").exists()
-        out = json.loads((tmp_path / "extractions" / "src-002.json").read_text())
+        assert (tmp_path / "staging" / "src-002.json").exists()
+        out = json.loads((tmp_path / "staging" / "src-002.json").read_text())
         assert "low_entity_count" in out["quality"]["flags"]

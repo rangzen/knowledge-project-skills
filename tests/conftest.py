@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 DATA_DIR = Path(__file__).parent / "data"
-SCRIPTS_DIR = Path(__file__).parent.parent / "skills/extract/scripts"
+SCRIPTS_DIR = Path(__file__).parent.parent / "skills/kp-staging/scripts"
 
 
 def run_preprocessor(script_name: str, data_file: Path) -> dict:

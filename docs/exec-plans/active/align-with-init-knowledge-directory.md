@@ -2,7 +2,7 @@
 
 **Goal**: Rename directories and commands in every skill and script to match the conventions in `~/sources/skills/skills/init-knowledge-directory/SKILL.md`, and add a `kp-` prefix to every command/skill name.
 
-**Status**: in progress - phase 1 complete
+**Status**: in progress - phase 2 complete
 
 ---
 
@@ -45,36 +45,35 @@
 - [x] `git mv skills/kb skills/kp-wiki`
 - [x] `git mv skills/query skills/kp-query`
 - [x] `git mv skills/kp-wiki/scripts/kb_build.py skills/kp-wiki/scripts/wiki_build.py`
-- [x] Run: `uv run pytest tests/test_skill_references.py` (should still pass - no links changed yet)
+- [x] Run: `uv run pytest tests/test_skill_references.py` - 1 passed
 
 ---
 
 ## Phase 2 - Update `kp-staging` skill (was `extract`)
 
-Files: `skills/kp-staging/SKILL.md`, `skills/kp-staging/scripts/write_extraction.py`
-
 **`skills/kp-staging/SKILL.md`**
-- [ ] `name: extract` -> `name: kp-staging`
-- [ ] Description: `extractions/` -> `staging/`, `/extract` -> `/kp-staging`
-- [ ] All `extractions/<source-id>.json` -> `staging/<source-id>.json`
-- [ ] All `/extract` command refs -> `/kp-staging`
-- [ ] `<skill-dir>` paths: no change needed (already relative)
-- [ ] `metadata.version`: bump minor
+- [x] `name: extract` -> `name: kp-staging`
+- [x] Description: `extractions/` -> `staging/`, `/extract` -> `/kp-staging`
+- [x] All `extractions/<source-id>.json` -> `staging/<source-id>.json`
+- [x] All `/extract` command refs -> `/kp-staging`
+- [x] Edge case: `/ingestion add` -> `/kp-source add`
+- [x] `metadata.version`: bumped to 1.9
 
 **`skills/kp-staging/scripts/write_extraction.py`**
-- [ ] Line 15 (docstring): `extractions/<source-id>.json` -> `staging/<source-id>.json`
-- [ ] Line 141: `extractions_dir = root / "extractions"` -> `extractions_dir = root / "staging"`
-- [ ] Lines 121-125, 143, 146, 163, 170: rename local variable `extractions_dir` -> `staging_dir` for clarity
-- [ ] Lines 146 print: `extractions/{args.source_id}.json` -> `staging/{args.source_id}.json`
+- [x] Docstring: `extractions/` -> `staging/`
+- [x] Line 141: `extractions_dir = root / "extractions"` -> `staging_dir = root / "staging"`
+- [x] Lines 121-125, 143, 146, 163, 170: renamed variable `extractions_dir` -> `staging_dir`
+- [x] Line 146 print: `extractions/` -> `staging/`
+- [x] Line 192: fixed em dashes in print output
 
 **Tests**
-- [ ] `tests/test_write_extraction.py` line 136: `(tmp_path / "extractions").mkdir()` -> `(tmp_path / "staging").mkdir()`
-- [ ] `tests/test_write_extraction.py` line 148: `tmp_path / "extractions" / "src-001.json"` -> `tmp_path / "staging" / "src-001.json"`
-- [ ] `tests/test_write_extraction.py` line 176: `(tmp_path / "extractions").mkdir()` -> `(tmp_path / "staging").mkdir()`
-- [ ] `tests/test_write_extraction.py` lines 187-188: `tmp_path / "extractions" / "src-002.json"` -> `tmp_path / "staging" / "src-002.json"`
-- [ ] `tests/data/json/object.json` line 7: `"output_dir": "extractions"` -> `"output_dir": "staging"`
-- [ ] `tests/data/yaml/config.yaml` line 18: `output_dir: extractions` -> `output_dir: staging`
-- [ ] Run: `uv run pytest tests/test_write_extraction.py tests/test_extract_preprocess_csv.py tests/test_extract_preprocess_docx.py tests/test_extract_preprocess_excel.py tests/test_extract_preprocess_json.py tests/test_extract_preprocess_pdf.py tests/test_extract_preprocess_yaml.py`
+- [x] `tests/conftest.py` line 8: `skills/extract/scripts` -> `skills/kp-staging/scripts`
+- [x] `tests/test_write_extraction.py` line 9: SCRIPT path -> `skills/kp-staging/scripts/write_extraction.py`
+- [x] `tests/test_write_extraction.py` lines 136, 176: `tmp_path / "extractions"` -> `tmp_path / "staging"`
+- [x] `tests/test_write_extraction.py` lines 148, 187, 188: `tmp_path / "extractions" /` -> `tmp_path / "staging" /`
+- [x] `tests/data/json/object.json` line 7: `"output_dir": "extractions"` -> `"output_dir": "staging"`
+- [x] `tests/data/yaml/config.yaml` lines 18, 20: `output_dir: extractions` -> `staging`, `output_dir: kb` -> `wiki`
+- [x] Run: `uv run pytest tests/test_write_extraction.py tests/test_extract_preprocess_*.py` - 39 passed
 
 ---
 
@@ -98,13 +97,13 @@ Files: `skills/kp-wiki/SKILL.md`, `skills/kp-wiki/scripts/wiki_build.py`
 - [ ] Line 624: `root / "kb" / "build-report.json"` -> `root / "wiki" / "build-report.json"`
 - [ ] Line 638: `kb = root / "kb"` -> `wiki = root / "wiki"`
 - [ ] Lines 684-685: `root / "kb" / "questions"` -> `root / "wiki" / "queries"`
-- [ ] Line 686 print: `Ask a question with /query first` -> `Ask a question with /kp-query first`
+- [ ] Line 686 print: `/query first` -> `/kp-query first`
 - [ ] Line 711: `root / "kb" / g["target"]` -> `root / "wiki" / g["target"]`
 - [ ] Line 732: `root / "kb" / gap["target"]` -> `root / "wiki" / gap["target"]`
 - [ ] Line 767: `kb_dir = root / "kb"` -> `wiki_dir = root / "wiki"`
 - [ ] Line 819: `"questions"` entry in etype list -> `"queries"`
 - [ ] Line 844: `root / "kb" / "config"` -> `root / "wiki" / "config"`
-- [ ] Rename local variables `kb_dir` -> `wiki_dir` and `kb` -> `wiki` throughout for consistency
+- [ ] Rename local variables `kb_dir` -> `wiki_dir` and `kb` -> `wiki` throughout
 
 **Tests - update `SCRIPT` path in 8 files**
 - [ ] `tests/test_kb_entity_resolution.py` line 7: `skills/kb/scripts/kb_build.py` -> `skills/kp-wiki/scripts/wiki_build.py`
@@ -125,11 +124,11 @@ Files: `skills/kp-wiki/SKILL.md`, `skills/kp-wiki/scripts/wiki_build.py`
 File: `skills/kp-init/SKILL.md`
 
 - [ ] `name: init` -> `name: kp-init`
-- [ ] Step 3 directories: add `staging/`, `wiki/`, `wiki/config/`, `wiki/queries/`; replace `extractions/` and `kb/` with new names
+- [ ] Step 3 directories: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/config/` -> `wiki/config/`, `kb/questions/` -> `wiki/queries/`
 - [ ] Step 3b: `kb/config/entity_stoplist.txt` -> `wiki/config/entity_stoplist.txt`
-- [ ] Step 5 `.gitignore` comment: `kb/questions/` -> `wiki/queries/`
+- [ ] Step 5 `.gitignore` comment: `# kb/questions/` -> `# wiki/queries/`
 - [ ] Step 6 next-step suggestion: `/ingestion add` -> `/kp-source add`
-- [ ] Add new step after directory creation: generate `AGENTS.md` with role definitions for `sources/`, `staging/`, `wiki/`, `scripts/`
+- [ ] Add new step: generate `AGENTS.md` with role definitions for `sources/`, `staging/`, `wiki/`, `scripts/`
 - [ ] `metadata.version`: bump minor
 - [ ] Run: `uv run pytest tests/test_skill_references.py`
 
@@ -142,8 +141,7 @@ File: `skills/kp-source/SKILL.md`
 - [ ] `name: ingestion` -> `name: kp-source`
 - [ ] Description: `/ingestion` -> `/kp-source`
 - [ ] All sub-command headers and body: `/ingestion add` -> `/kp-source add`, `/ingestion status` -> `/kp-source status`, `/ingestion check-updates` -> `/kp-source check-updates`
-- [ ] Cross-skill refs: `/init` -> `/kp-init`
-- [ ] `<skill-dir>` paths: no change needed (already relative)
+- [ ] Cross-skill refs: `/init` -> `/kp-init`, `/extract` -> `/kp-staging`
 - [ ] `metadata.version`: bump minor
 - [ ] Run: `uv run pytest tests/test_skill_references.py`
 
@@ -188,7 +186,7 @@ File: `skills/kp-query/SKILL.md`
 - [ ] `extractions/` -> `staging/` in all examples
 
 **`AGENTS.md`**
-- [ ] Commands table: update command column (`/init` -> `/kp-init`, etc.)
+- [ ] Commands table: update command column
 - [ ] Any dir refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
 
 **`docs/exec-plans/active/structured-content-in-kb.md`**

@@ -12,10 +12,10 @@ Usage:
 
 Reads the agent-produced extraction JSON from stdin (or --input), deduplicates
 entities, runs quality checks, validates against the schema, writes
-extractions/<source-id>.json, and updates sources/<source-id>/.meta.json with
+staging/<source-id>.json, and updates sources/<source-id>/.meta.json with
 a structured extraction status object.
 
-On failure: writes extractions/<source-id>.failed.json and exits non-zero.
+On failure: writes staging/<source-id>.failed.json and exits non-zero.
 Never overwrites a good extraction without --force.
 """
 
@@ -118,11 +118,11 @@ def quality_level(quality: dict) -> str:
     return "warning"
 
 
-def write_failure(extractions_dir: Path, source_id: str, error: str) -> None:
-    good = extractions_dir / f"{source_id}.json"
+def write_failure(staging_dir: Path, source_id: str, error: str) -> None:
+    good = staging_dir / f"{source_id}.json"
     if good.exists():
         return
-    failed = extractions_dir / f"{source_id}.failed.json"
+    failed = staging_dir / f"{source_id}.failed.json"
     failed.write_text(json.dumps({
         "source_id": source_id,
         "failed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -138,12 +138,12 @@ def main():
     args = parser.parse_args()
 
     root = project_root()
-    extractions_dir = root / "extractions"
-    extractions_dir.mkdir(exist_ok=True)
-    output_path = extractions_dir / f"{args.source_id}.json"
+    staging_dir = root / "staging"
+    staging_dir.mkdir(exist_ok=True)
+    output_path = staging_dir / f"{args.source_id}.json"
 
     if output_path.exists() and not args.force:
-        print(f"Skipped: extractions/{args.source_id}.json already exists (use --force to re-run).",
+        print(f"Skipped: staging/{args.source_id}.json already exists (use --force to re-run).",
               file=sys.stderr)
         sys.exit(0)
 
@@ -160,14 +160,14 @@ def main():
     except json.JSONDecodeError as exc:
         msg = f"invalid JSON: {exc}"
         print(f"Error: {msg}", file=sys.stderr)
-        write_failure(extractions_dir, args.source_id, msg)
+        write_failure(staging_dir, args.source_id, msg)
         sys.exit(1)
 
     errors = validate(data)
     if errors:
         msg = "schema validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
         print(f"Error: {msg}", file=sys.stderr)
-        write_failure(extractions_dir, args.source_id, msg)
+        write_failure(staging_dir, args.source_id, msg)
         sys.exit(1)
 
     data["entities"], removed = deduplicate_entities(data.get("entities", []))
@@ -189,7 +189,7 @@ def main():
     meta_path.write_text(json.dumps(meta, indent=2))
 
     entity_count = len(data["entities"])
-    print(f"OK: {args.source_id} — {entity_count} entities — {data['summary']['short']}")
+    print(f"OK: {args.source_id} - {entity_count} entities - {data['summary']['short']}")
     if removed:
         print(f"  Deduplication: removed {removed} duplicate {'entity' if removed == 1 else 'entities'}")
     if quality["flags"]:

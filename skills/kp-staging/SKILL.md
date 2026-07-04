@@ -1,16 +1,16 @@
 ---
-name: extract
+name: kp-staging
 description: >
   Run LLM-based or rule-based extractors over ingested sources and write
-  structured JSON to extractions/. Extracts entities, summaries, key facts,
+  structured JSON to staging/. Extracts entities, summaries, key facts,
   dates, schema (for structured sources), and images (for PDFs). Use when
-  the user runs /extract, wants to process a source, asks to extract entities
-  or facts from a document, or needs to populate extractions/ before building
+  the user runs /kp-staging, wants to process a source, asks to extract entities
+  or facts from a document, or needs to populate staging/ before building
   the knowledge base. "kps" is the short name for this project (Knowledge
-  Project Skills) — also activate when the user says "kps extract".
+  Project Skills) - also activate when the user says "kps extract".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.8"
+  version: "1.9"
   project: knowledge-project-skills
 ---
 
@@ -18,7 +18,7 @@ metadata:
 
 ### When to activate
 
-Activate when the user invokes `/extract`, names a specific `source-id` to
+Activate when the user invokes `/kp-staging`, names a specific `source-id` to
 process, or asks to extract, analyze, or process a source document.
 
 ---
@@ -29,8 +29,8 @@ process, or asks to extract, analyze, or process a source document.
 
 - `<source-id>`: process that one source.
 - `--all`: find all `sources/<source-id>/` directories where
-  `extractions/<source-id>.json` does not exist (or `--force` overrides).
-- Skip sources where `extractions/<source-id>.json` already exists unless
+  `staging/<source-id>.json` does not exist (or `--force` overrides).
+- Skip sources where `staging/<source-id>.json` already exists unless
   `--force` is set.
 
 **2. For each source, run the two-stage extraction pipeline**
@@ -78,9 +78,9 @@ uv run <skill-dir>/scripts/write_extraction.py --source-id <source-id> [--force]
 
 Pipe the extraction JSON to this script via stdin (or pass `--input <file>`).
 It deduplicates entities, runs quality checks, validates against the schema,
-writes `extractions/<source-id>.json`, and updates `.meta.json` with a
+writes `staging/<source-id>.json`, and updates `.meta.json` with a
 structured `extraction` status object. On failure it writes
-`extractions/<source-id>.failed.json` and exits non-zero.
+`staging/<source-id>.failed.json` and exits non-zero.
 
 ---
 
@@ -205,7 +205,7 @@ Output: `{"text": "<raw yaml>", "metadata": {"format": "yaml", "source_ref": "..
 
 Deduplicates entities, runs quality checks, validates an agent-produced
 extraction JSON (from stdin or `--input`), writes it to
-`extractions/<source-id>.json`, and updates `.meta.json` with:
+`staging/<source-id>.json`, and updates `.meta.json` with:
 ```json
 {
   "extraction": {
@@ -223,7 +223,7 @@ treated as `status: "complete", quality: "unknown"` by downstream tools.
 |---|---|
 | `--source-id` | (required) source identifier |
 | `--input <file>` | read JSON from file instead of stdin |
-| `--force` | overwrite if `extractions/<source-id>.json` already exists |
+| `--force` | overwrite if `staging/<source-id>.json` already exists |
 
 Fails loudly (non-zero exit, `.failed.json` written) on schema errors.
 
@@ -231,7 +231,7 @@ Fails loudly (non-zero exit, `.failed.json` written) on schema errors.
 
 ### Output schema
 
-`extractions/<source-id>.json` fields:
+`staging/<source-id>.json` fields:
 
 | Field | Type | Notes |
 |---|---|---|
@@ -268,7 +268,7 @@ The full schema with examples is defined inline in the Output schema section abo
 
 ### Edge cases
 
-- Source not ingested (no `.meta.json`): report error, suggest `/ingestion add`.
+- Source not ingested (no `.meta.json`): report error, suggest `/kp-source add`.
 - Output already exists and no `--force`: skip and notify.
 - `write_extraction.py` writes `.failed.json` on failure; never overwrites a
   good extraction without `--force`.
