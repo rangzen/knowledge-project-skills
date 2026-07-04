@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html data-theme="luxury" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan: Preserve Entity Name Variants as Aliases</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+  <main class="mx-auto max-w-4xl px-4 py-10 space-y-8">
+
+    <!-- Header -->
+    <header class="space-y-2">
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="text-3xl font-bold">Preserve Entity Name Variants as Aliases</h1>
+        <span class="badge badge-soft badge-primary">kb_build.py</span>
+        <span class="badge badge-soft badge-accent">Small change</span>
+      </div>
+      <p class="text-base-content/60 text-sm">
+        <code class="font-mono">skills/kb/scripts/kb_build.py</code> · <code class="font-mono">resolve_entities()</code>
+      </p>
+    </header>
+
+    <!-- Goal -->
+    <section class="card card-border bg-base-200">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Goal</h2>
+        <p>
+          LLM extractors sometimes produce aliases that are only capitalisation variants of the canonical
+          name — noise that pollutes the KB frontmatter and the "Also known as" line.
+          Add a <strong>meaningfulness filter</strong> so only genuine alternative names
+          (different characters, not just case) survive into KB metadata.
+          Capitalisation-only variants are silently dropped; real abbreviations and expansions are kept.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+          <div class="bg-error/10 rounded-box p-3 text-sm space-y-1">
+            <p class="font-semibold text-error text-xs uppercase tracking-wide">Dropped (noise)</p>
+            <p><code class="font-mono text-xs">"Magic System"</code> → alias <code class="font-mono text-xs">"magic system"</code></p>
+            <p><code class="font-mono text-xs">"Dark Arts"</code> → alias <code class="font-mono text-xs">"Dark arts"</code></p>
+            <p class="text-base-content/50 text-xs">Same letters, same lowercase — just case</p>
+          </div>
+          <div class="bg-success/10 rounded-box p-3 text-sm space-y-1">
+            <p class="font-semibold text-success text-xs uppercase tracking-wide">Kept (meaningful)</p>
+            <p><code class="font-mono text-xs">"postgres"</code> → alias <code class="font-mono text-xs">"PostgreSQL"</code></p>
+            <p><code class="font-mono text-xs">"Aes Sedai"</code> → alias <code class="font-mono text-xs">"Aes Sedai sisters"</code></p>
+            <p class="text-base-content/50 text-xs">Different lowercase — genuinely different form</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The filter function -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-semibold">The filter: <code class="font-mono text-base">_is_meaningful_alias()</code></h2>
+      <p class="text-base-content/70 text-sm">
+        One helper function, applied everywhere an alias is appended. The rule is simple:
+        an alias is meaningful only when its lowercase form differs from the canonical name's lowercase.
+        Since entity resolution already keys on <code class="font-mono text-xs">name.lower()</code>,
+        capitalisation-only variants are already deduplicated — there is no reason to preserve them as aliases.
+      </p>
+
+      <div class="card card-border bg-base-100">
+        <div class="card-body gap-2">
+          <h3 class="font-semibold text-sm">New helper — add near top of <code class="font-mono text-xs">resolve_entities()</code></h3>
+          <div class="mockup-code text-xs overflow-x-auto">
+            <pre data-prefix=" "><code>def _is_meaningful_alias(alias: str, canonical: str) -> bool:</code></pre>
+            <pre data-prefix=" "><code>    return alias.lower() != canonical.lower()</code></pre>
+          </div>
+          <p class="text-xs text-base-content/50 mt-1">
+            That's it. "PostgreSQL" vs "postgres" → lowercase differ → True.
+            "magic system" vs "Magic System" → lowercase same → False.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Where to apply -->
+    <section class="space-y-3">
+      <h2 class="text-xl font-semibold">Where to apply the filter</h2>
+      <p class="text-base-content/70 text-sm">Three call sites in <code class="font-mono text-xs">resolve_entities()</code>.</p>
+
+      <div class="space-y-4">
+
+        <!-- Site 1: initial load -->
+        <div class="card card-border bg-base-100">
+          <div class="card-body gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="badge badge-soft badge-neutral text-xs">Site 1</span>
+              <h3 class="font-semibold text-sm">Initial entity load — filter LLM-provided aliases (line 84)</h3>
+            </div>
+            <p class="text-xs text-base-content/60">
+              When a new entity is stored for the first time, its extractor-provided
+              <code class="font-mono text-xs">aliases</code> list may already contain capitalisation noise.
+              Filter it on the way in.
+            </p>
+            <div class="mockup-code text-xs overflow-x-auto">
+              <pre data-prefix="-"><code>merged.setdefault("aliases", [])</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>merged["aliases"] = [</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>    a for a in merged.get("aliases", [])</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>    if _is_meaningful_alias(a, merged["name"])</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>]</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Site 2: alias-based merge absorbed name -->
+        <div class="card card-border bg-base-100">
+          <div class="card-body gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="badge badge-soft badge-neutral text-xs">Site 2</span>
+              <h3 class="font-semibold text-sm">Alias-based merge — absorbed entity name (line 98)</h3>
+            </div>
+            <p class="text-xs text-base-content/60">
+              When B is absorbed into A, B's canonical name is added to A's aliases.
+              Apply the filter before appending.
+            </p>
+            <div class="mockup-code text-xs overflow-x-auto">
+              <pre data-prefix="-"><code>if other["name"] not in entity["aliases"] \</code></pre>
+              <pre data-prefix="-"><code>        and other["name"] != entity["name"]:</code></pre>
+              <pre data-prefix="-"><code>    entity["aliases"].append(other["name"])</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>if other["name"] not in entity["aliases"] \</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>        and other["name"] != entity["name"] \</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>        and _is_meaningful_alias(other["name"], entity["name"]):</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>    entity["aliases"].append(other["name"])</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Site 3: alias-based merge absorbed aliases -->
+        <div class="card card-border bg-base-100">
+          <div class="card-body gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="badge badge-soft badge-neutral text-xs">Site 3</span>
+              <h3 class="font-semibold text-sm">Alias-based merge — absorbed entity's aliases (line 100)</h3>
+            </div>
+            <p class="text-xs text-base-content/60">
+              B's own aliases are also propagated to A. Filter each one before appending.
+            </p>
+            <div class="mockup-code text-xs overflow-x-auto">
+              <pre data-prefix="-"><code>for other_alias in other.get("aliases", []):</code></pre>
+              <pre data-prefix="-"><code>    if other_alias not in entity["aliases"] \</code></pre>
+              <pre data-prefix="-"><code>            and other_alias.lower() != key:</code></pre>
+              <pre data-prefix="-"><code>        entity["aliases"].append(other_alias)</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>for other_alias in other.get("aliases", []):</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>    if other_alias not in entity["aliases"] \</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>            and other_alias.lower() != key \</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>            and _is_meaningful_alias(other_alias, entity["name"]):</code></pre>
+              <pre class="bg-success/10 text-success" data-prefix="+"><code>        entity["aliases"].append(other_alias)</code></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Note on name-based merge -->
+    <section class="card card-border bg-base-200">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Name-based merge: no change needed</h2>
+        <p class="text-sm text-base-content/70">
+          The original plan proposed capturing name variants from the name-based merge path
+          (when two extractions share the same <code class="font-mono text-xs">name.lower()</code>).
+          With the meaningfulness filter, this becomes a no-op: because entities are keyed on
+          <code class="font-mono text-xs">name.lower()</code>, any two names that collide are by
+          definition capitalisation-only variants — and the filter would always drop them.
+          No code change needed in that path.
+        </p>
+        <div class="bg-base-100 rounded-box p-3 text-xs space-y-1">
+          <p><code class="font-mono">"Dark Arts".lower()</code> = <code class="font-mono">"dark arts"</code></p>
+          <p><code class="font-mono">"Dark arts".lower()</code> = <code class="font-mono">"dark arts"</code></p>
+          <p class="text-base-content/50">Same key → same bucket → capitalisation-only variant → filter drops it → no alias</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scope: what doesn't change -->
+    <section class="card card-border bg-base-200">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Scope — what stays the same</h2>
+        <ul class="list-disc list-inside text-sm text-base-content/70 space-y-1">
+          <li><code class="font-mono text-xs">write_kb_page()</code> — aliases already flow into frontmatter and body, no changes.</li>
+          <li>The extraction JSON format — <code class="font-mono text-xs">aliases</code> is an existing field.</li>
+          <li><code class="font-mono text-xs">build_slug_map()</code> — already maps alias names to slugs for wikilink injection.</li>
+          <li>The type-conflict path — untouched.</li>
+          <li>KB frontmatter <code class="font-mono text-xs">aliases:</code> YAML block — already present and correct.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Tests -->
+    <section class="card card-border bg-base-200">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Tests to add</h2>
+        <p class="text-sm text-base-content/70">In <code class="font-mono text-xs">tests/test_kb_entity_resolution.py</code></p>
+        <ul class="list-disc list-inside text-sm text-base-content/70 space-y-2">
+          <li>
+            <strong>Capitalisation-only alias is filtered on load:</strong>
+            extraction with <code class="font-mono text-xs">name: "Magic System", aliases: ["magic system"]</code>
+            → resolved entity has <code class="font-mono text-xs">aliases == []</code>.
+          </li>
+          <li>
+            <strong>Meaningful alias is kept:</strong>
+            extraction with <code class="font-mono text-xs">name: "postgres", aliases: ["PostgreSQL"]</code>
+            → <code class="font-mono text-xs">aliases == ["PostgreSQL"]</code>.
+          </li>
+          <li>
+            <strong>Absorbed name filtered in alias-based merge:</strong>
+            A has <code class="font-mono text-xs">name: "Combat"</code> and
+            <code class="font-mono text-xs">aliases: ["combat"]</code>. After absorbing B
+            (<code class="font-mono text-xs">name: "combat"</code>),
+            "combat" is NOT added again as alias (same lowercase as canonical).
+          </li>
+          <li>
+            <strong>Absorbed name kept when meaningful:</strong>
+            A has <code class="font-mono text-xs">aliases: ["DB"]</code> (key = "db").
+            B has <code class="font-mono text-xs">name: "DB", aliases: ["PostgreSQL"]</code>.
+            After absorbing B, A's aliases include "PostgreSQL" (different lowercase from A's name).
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Implementation summary -->
+    <section class="card card-border bg-primary/10">
+      <div class="card-body gap-2">
+        <h2 class="card-title text-lg">Implementation summary</h2>
+        <ul class="steps steps-vertical text-sm">
+          <li class="step step-primary">
+            Add <code class="font-mono text-xs">_is_meaningful_alias(alias, canonical)</code> helper
+            (2 lines)
+          </li>
+          <li class="step step-primary">
+            Apply at 3 call sites in <code class="font-mono text-xs">resolve_entities()</code>:
+            initial load, absorbed name, absorbed aliases
+          </li>
+          <li class="step step-primary">
+            Add 4 unit tests in <code class="font-mono text-xs">tests/test_kb_entity_resolution.py</code>
+          </li>
+          <li class="step">
+            No changes to <code class="font-mono text-xs">write_kb_page()</code>,
+            extraction format, slug map, or name-based merge path
+          </li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

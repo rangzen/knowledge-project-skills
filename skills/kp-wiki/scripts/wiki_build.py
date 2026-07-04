@@ -46,6 +46,10 @@ def load_extractions(root: Path) -> list[dict]:
     return extractions
 
 
+def _is_meaningful_alias(alias: str, canonical: str) -> bool:
+    return alias.lower() != canonical.lower()
+
+
 def resolve_entities(
     extractions: list[dict],
     confidence_threshold: float = 0.0,
@@ -81,7 +85,10 @@ def resolve_entities(
             else:
                 merged = dict(entity)
                 merged["_sources"] = [source_id]
-                merged.setdefault("aliases", [])
+                merged["aliases"] = [
+                    a for a in merged.get("aliases", [])
+                    if _is_meaningful_alias(a, merged["name"])
+                ]
                 merged["_bodies"] = [{"source": source_id, "body": entity["body"]}] if entity.get("body") else []
                 seen[key] = merged
 
@@ -95,10 +102,12 @@ def resolve_entities(
                 for src in other["_sources"]:
                     if src not in entity["_sources"]:
                         entity["_sources"].append(src)
-                if other["name"] not in entity["aliases"] and other["name"] != entity["name"]:
+                if other["name"] not in entity["aliases"] and other["name"] != entity["name"] \
+                        and _is_meaningful_alias(other["name"], entity["name"]):
                     entity["aliases"].append(other["name"])
                 for other_alias in other.get("aliases", []):
-                    if other_alias not in entity["aliases"] and other_alias.lower() != key:
+                    if other_alias not in entity["aliases"] and other_alias.lower() != key \
+                            and _is_meaningful_alias(other_alias, entity["name"]):
                         entity["aliases"].append(other_alias)
                 to_remove.add(alias_key)
 

@@ -113,6 +113,36 @@ class TestAliasMerge:
         assert "Beta" in entities[0]["aliases"]
 
 
+class TestMeaningfulAliasFilter:
+    def test_capitalisation_only_alias_dropped_on_load(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity("Magic System", aliases=["magic system"])]),
+        ])
+        assert entities[0]["aliases"] == []
+
+    def test_meaningful_alias_kept_on_load(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity("postgres", aliases=["PostgreSQL"])]),
+        ])
+        assert "PostgreSQL" in entities[0]["aliases"]
+
+    def test_absorbed_name_filtered_when_capitalisation_only(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity("Combat", aliases=["combat"])]),
+            _ext("s2", [_entity("combat")]),
+        ])
+        assert len(entities) == 1
+        assert "combat" not in entities[0]["aliases"]
+
+    def test_absorbed_alias_kept_when_meaningful(self):
+        entities, _ = resolve_entities([
+            _ext("s1", [_entity("Database", aliases=["DB"])]),
+            _ext("s2", [_entity("DB", aliases=["PostgreSQL"])]),
+        ])
+        assert len(entities) == 1
+        assert "PostgreSQL" in entities[0]["aliases"]
+
+
 class TestConfidenceThreshold:
     def test_entity_below_threshold_excluded(self):
         entities, _ = resolve_entities(

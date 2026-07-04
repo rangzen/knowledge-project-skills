@@ -2,7 +2,7 @@
 
 **Goal**: Rename directories and commands in every skill and script to match the conventions in `~/sources/skills/skills/init-knowledge-directory/SKILL.md`, and add a `kp-` prefix to every command/skill name.
 
-**Status**: not started
+**Status**: in progress - phase 1 complete
 
 ---
 
@@ -39,13 +39,13 @@
 
 ## Phase 1 - Rename folders and scripts
 
-- [ ] `git mv skills/init skills/kp-init`
-- [ ] `git mv skills/ingestion skills/kp-source`
-- [ ] `git mv skills/extract skills/kp-staging`
-- [ ] `git mv skills/kb skills/kp-wiki`
-- [ ] `git mv skills/query skills/kp-query`
-- [ ] `git mv skills/kp-wiki/scripts/kb_build.py skills/kp-wiki/scripts/wiki_build.py`
-- [ ] Run: `uv run pytest tests/test_skill_references.py` (should still pass - no links changed yet)
+- [x] `git mv skills/init skills/kp-init`
+- [x] `git mv skills/ingestion skills/kp-source`
+- [x] `git mv skills/extract skills/kp-staging`
+- [x] `git mv skills/kb skills/kp-wiki`
+- [x] `git mv skills/query skills/kp-query`
+- [x] `git mv skills/kp-wiki/scripts/kb_build.py skills/kp-wiki/scripts/wiki_build.py`
+- [x] Run: `uv run pytest tests/test_skill_references.py` (should still pass - no links changed yet)
 
 ---
 
