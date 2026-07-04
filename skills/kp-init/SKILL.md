@@ -1,15 +1,16 @@
 ---
-name: init
+name: kp-init
 description: >
   Scaffold a new knowledge project in the current directory. Creates sources/,
-  extractions/, kb/, and kb/questions/ directories, writes .knowledge-project
-  config, and generates .gitignore defaults. Use when the user runs /init,
+  staging/, wiki/, wiki/config/, wiki/queries/, and scripts/ directories, writes
+  .knowledge-project config, generates .gitignore defaults, and creates AGENTS.md
+  with per-directory role definitions. Use when the user runs /kp-init,
   wants to start a new knowledge project, or needs to set up the directory
   structure before adding sources or running extraction. "kps" is the short
-  name for this project (Knowledge Project Skills) — also activate when
+  name for this project (Knowledge Project Skills) - also activate when
   the user says "kps init".
 metadata:
-  version: "1.2"
+  version: "1.3"
   project: knowledge-project-skills
 ---
 
@@ -17,7 +18,7 @@ metadata:
 
 ### When to activate
 
-Activate when the user invokes `/init` or asks to create or initialize a
+Activate when the user invokes `/kp-init` or asks to create or initialize a
 knowledge project in the current directory.
 
 ---
@@ -41,18 +42,19 @@ Read `.knowledge-project` in the current directory.
 
 ```
 sources/
-extractions/
-kb/
-kb/config/
-kb/questions/
+staging/
+wiki/
+wiki/config/
+wiki/queries/
+scripts/
 ```
 
-**3b. Write `kb/config/entity_stoplist.txt`**
+**3b. Write `wiki/config/entity_stoplist.txt`**
 
 ```
-# Entity stoplist — one entry per line, case-insensitive.
+# Entity stoplist - one entry per line, case-insensitive.
 # Entities whose normalized name matches any entry here are dropped before page generation.
-# Add words you observe being extracted as false entities in your own KB builds.
+# Add words you observe being extracted as false entities in your own wiki builds.
 about
 access
 activating
@@ -69,18 +71,42 @@ created_at: <current ISO datetime>
 **5. Write `.gitignore`**
 
 ```gitignore
-# Sensitive sources (add individually with /ingestion add --sensitive)
+# Sensitive sources (add individually with /kp-source add --sensitive)
 
-# Uncomment to exclude question history from public repos:
-# kb/questions/
+# Uncomment to exclude query history from public repos:
+# wiki/queries/
 ```
 
-If `--private-queries` was passed, uncomment the `kb/questions/` line.
+If `--private-queries` was passed, uncomment the `wiki/queries/` line.
 
-**6. Confirm to the user**
+**6. Write `AGENTS.md`**
+
+```md
+# AI Agent Directives for This Knowledge Directory
+
+Follow the roles below strictly to preserve data integrity:
+
+### sources/ (Read-Only)
+- **Contents:** Raw documents, original PDFs, images, URL lists.
+- **Golden rule:** NEVER MODIFY, DELETE, or WRITE into this directory. Only read from it during ingestion tasks.
+
+### staging/ (Read / Write - /kp-staging only)
+- **Contents:** Structured extraction JSON, one file per source.
+- **Golden rule:** Written exclusively by /kp-staging. Do not edit manually. Keep an explicit trace of the original source via source_id.
+
+### wiki/ (Read / Append / Update - /kp-wiki only)
+- **Contents:** The knowledge wiki (glossary, entity pages, index, queries).
+- **Golden rule:** Act as an "Archivist." Every page should be highly connected with wiki links like `[[file_name]]`. Information must always be sourced back to staging or sources.
+
+### scripts/ (Read / Write)
+- **Contents:** Reusable generated scripts and automation helpers.
+- **Golden rule:** Store reusable scripts here only. All generated scripts must be Python scripts executed with `uv` so they do not pollute the environment.
+```
+
+**7. Confirm to the user**
 
 Print the directories created and the path to `.knowledge-project`.
-Suggest the next step: `/ingestion add <path-or-url>`.
+Suggest the next step: `/kp-source add <path-or-url>`.
 
 ---
 
@@ -89,7 +115,7 @@ Suggest the next step: `/ingestion add <path-or-url>`.
 | Flag | Effect |
 |---|---|
 | `--name "My Project"` | Sets `name` in `.knowledge-project`. Defaults to current directory name. |
-| `--private-queries` | Adds `kb/questions/` to `.gitignore`. |
+| `--private-queries` | Adds `wiki/queries/` to `.gitignore`. |
 
 ---
 
