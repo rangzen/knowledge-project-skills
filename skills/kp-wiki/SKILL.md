@@ -1,17 +1,17 @@
 ---
-name: kb
+name: kp-wiki
 description: >
-  Build or update the knowledge base in kb/ from extracted content. Generates
-  kb/glossary.md, one Markdown page per entity, kb/index.md (Obsidian entry
-  point), and kb/index.yaml (agent entry point). Reads kb/questions/ feedback
-  to prioritize topics and surface extraction gaps. Use when the user runs /kb,
-  wants to build or rebuild the KB, needs to generate the glossary or wiki pages,
-  or wants to add a manually-curated page to the knowledge base. "kps" is
-  the short name for this project (Knowledge Project Skills) — also activate
-  when the user says "kps kb".
+  Build or update the wiki in wiki/ from staged content. Generates
+  wiki/glossary.md, one Markdown page per entity, wiki/index.md (Obsidian entry
+  point), and wiki/index.yaml (agent entry point). Reads wiki/queries/ feedback
+  to prioritize topics and surface staging gaps. Use when the user runs /kp-wiki,
+  wants to build or rebuild the wiki, needs to generate the glossary or wiki pages,
+  or wants to add a manually-curated page to the wiki. "kps" is
+  the short name for this project (Knowledge Project Skills) - also activate
+  when the user says "kps wiki".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.4"
+  version: "1.5"
   project: knowledge-project-skills
 ---
 
@@ -19,9 +19,8 @@ metadata:
 
 ### When to activate
 
-Activate when the user invokes `/kb build`, `/kb update`, `/kb add-page`, or
-`/kb enrich`, or asks to build, rebuild, update, or enrich the knowledge base
-or wiki.
+Activate when the user invokes `/kp-wiki build`, `/kp-wiki update`, `/kp-wiki add-page`, or
+`/kp-wiki enrich`, or asks to build, rebuild, update, or enrich the wiki.
 
 ---
 
@@ -29,36 +28,36 @@ or wiki.
 
 #### `build`
 
-Full rebuild from all extractions.
+Full rebuild from all staged content.
 
 Run:
 ```
-<skill-dir>/scripts/kb_build.py --mode build
+<skill-dir>/scripts/wiki_build.py --mode build
 ```
 
 The script executes this pipeline in order:
 
-1. **Read** all `extractions/<source-id>.json` files. Validate `schema_version`.
-2. **Read** frontmatter from all `kb/questions/` files (feedback layer).
-3. **Resolve entities** — merge aliases across extractions, deduplicate by
+1. **Read** all `staging/<source-id>.json` files. Validate `schema_version`.
+2. **Read** frontmatter from all `wiki/queries/` files (feedback layer).
+3. **Resolve entities** - merge aliases across staging files, deduplicate by
    canonical name.
-4. **Write** `kb/glossary.md` — alphabetically sorted, one entry per resolved
+4. **Write** `wiki/glossary.md` - alphabetically sorted, one entry per resolved
    entity with aliases, definition, sources, and `[[wikilinks]]` to related terms.
-5. **Write** `kb/<type>/<topic>.md` — one page per entity. Pages with
+5. **Write** `wiki/<type>/<topic>.md` - one page per entity. Pages with
    `generated: false` or `manual: true` frontmatter are skipped.
-6. **Write** `kb/index.md` — Obsidian entry point, pages grouped by entity type.
-7. **Write** `kb/index.yaml` — agent entry point (see schema below).
+6. **Write** `wiki/index.md` - Obsidian entry point, pages grouped by entity type.
+7. **Write** `wiki/index.yaml` - agent entry point (see schema below).
 8. **Validate** all `[[wikilinks]]` and `file:` entries in `index.yaml`.
    Report broken links as warnings; never fail the build for broken links.
 
 #### `update`
 
-Incremental rebuild. Only regenerates pages whose source extractions have a
+Incremental rebuild. Only regenerates pages whose staging files have a
 `extracted_at` timestamp newer than the page's `last_built` frontmatter date.
 
 Run:
 ```
-<skill-dir>/scripts/kb_build.py --mode update
+<skill-dir>/scripts/wiki_build.py --mode update
 ```
 
 #### `enrich`
@@ -70,22 +69,22 @@ the inline enrichment failed).
 Run the automated pipeline:
 
 ```
-<skill-dir>/scripts/kb_build.py --mode enrich
+<skill-dir>/scripts/wiki_build.py --mode enrich
 ```
 
 The script outputs:
-- Which question files still have `enrichment_needed: true`
-- Which sources to re-extract (read from the target pages' frontmatter)
+- Which query files still have `enrichment_needed: true`
+- Which sources to re-stage (read from the target pages' frontmatter)
 - Which flags were already cleared (target page now has body content)
 
 **After running the script, execute these steps automatically:**
 
-1. For each source ID listed in the script output, invoke the extract skill
+1. For each source ID listed in the script output, invoke the kp-staging skill
    with `--force` on that source.
-2. Run `<skill-dir>/scripts/kb_build.py --mode build` to write enriched body
-   content into KB pages.
-3. Run `<skill-dir>/scripts/kb_build.py --mode enrich` one more time to clear
-   the flags on question files whose target pages now have body content.
+2. Run `<skill-dir>/scripts/wiki_build.py --mode build` to write enriched body
+   content into wiki pages.
+3. Run `<skill-dir>/scripts/wiki_build.py --mode enrich` one more time to clear
+   the flags on query files whose target pages now have body content.
 
 Report a summary: how many gaps were found, which sources were re-extracted,
 how many flags were cleared.
@@ -94,12 +93,12 @@ If there are no gaps, say so and stop.
 
 #### `add-page <topic>`
 
-Create a stub page at `kb/topics/<topic-slug>.md` with `generated: false`
+Create a stub page at `wiki/topics/<topic-slug>.md` with `generated: false`
 so it is never overwritten by future builds. Open for the user to edit.
 
 ---
 
-### `kb/index.yaml` schema
+### `wiki/index.yaml` schema
 
 ```yaml
 schema_version: "1"
@@ -129,7 +128,7 @@ gaps:
     max_confidence: low
 ```
 
-`gaps` is populated from `kb/questions/` entries where `confidence` is `low`
+`gaps` is populated from `wiki/queries/` entries where `confidence` is `low`
 or `medium`, grouped by recurring topic keywords.
 
 ---
@@ -175,8 +174,8 @@ If two entities produce the same slug (e.g. "Widget" as both a `product` and a
 
 ### Edge cases
 
-- No extractions: print a helpful message, suggest `/extract --all`. Exit cleanly.
-- Partial extractions: build from what exists, warn about sources with
+- No staging files: print a helpful message, suggest `/kp-staging --all`. Exit cleanly.
+- Partial staging: build from what exists, warn about sources with
   `extraction.status != "complete"` in `.meta.json`. Legacy `extracted: true` is
   treated as complete.
 - Broken `[[wikilinks]]`: report as warnings with originating page. Do not fail.

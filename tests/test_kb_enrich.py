@@ -1,11 +1,11 @@
-"""Tests for the enrich mode helpers in kb_build.py."""
+"""Tests for the enrich mode helpers in wiki_build.py."""
 import importlib.util
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 
@@ -94,7 +94,7 @@ class TestClearEnrichmentFlag:
 def _make_project(tmp_path: Path) -> Path:
     """Scaffold a minimal .knowledge-project layout."""
     (tmp_path / ".knowledge-project").write_text("{}")
-    (tmp_path / "kb" / "questions").mkdir(parents=True)
+    (tmp_path / "wiki" / "queries").mkdir(parents=True)
     return tmp_path
 
 
@@ -112,13 +112,13 @@ def _make_question_file(questions_dir: Path, slug: str, needed: bool, target: st
 class TestRunEnrich:
     def test_no_gaps_prints_message(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        _make_question_file(root / "kb" / "questions", "q1", needed=False, target=None)
+        _make_question_file(root / "wiki" / "queries", "q1", needed=False, target=None)
         run_enrich(root)
         assert "No enrichment gaps" in capsys.readouterr().out
 
     def test_open_gap_no_kb_page(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
+        _make_question_file(root / "wiki" / "queries", "combat", needed=True, target="concepts/combat.md")
         run_enrich(root)
         out = capsys.readouterr().out
         assert "Open enrichment gaps" in out
@@ -126,8 +126,8 @@ class TestRunEnrich:
 
     def test_gap_with_thin_page_not_auto_cleared(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
-        page_dir = root / "kb" / "concepts"
+        qfile = _make_question_file(root / "wiki" / "queries", "combat", needed=True, target="concepts/combat.md")
+        page_dir = root / "wiki" / "concepts"
         page_dir.mkdir(parents=True)
         (page_dir / "combat.md").write_text(
             _FRONTMATTER + "# Combat\n\nThe combat system.\n\n**Type:** concept\n"
@@ -137,8 +137,8 @@ class TestRunEnrich:
 
     def test_gap_with_enriched_page_is_auto_cleared(self, tmp_path, capsys):
         root = _make_project(tmp_path)
-        qfile = _make_question_file(root / "kb" / "questions", "combat", needed=True, target="concepts/combat.md")
-        page_dir = root / "kb" / "concepts"
+        qfile = _make_question_file(root / "wiki" / "queries", "combat", needed=True, target="concepts/combat.md")
+        page_dir = root / "wiki" / "concepts"
         page_dir.mkdir(parents=True)
         (page_dir / "combat.md").write_text(
             _FRONTMATTER + "# Combat\n\nThe combat system.\n\n## Attacking\n\nRoll damage.\n"
@@ -150,4 +150,4 @@ class TestRunEnrich:
     def test_no_questions_dir(self, tmp_path, capsys):
         (tmp_path / ".knowledge-project").write_text("{}")
         run_enrich(tmp_path)
-        assert "No questions found" in capsys.readouterr().out
+        assert "No queries found" in capsys.readouterr().out

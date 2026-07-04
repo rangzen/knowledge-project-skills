@@ -19,7 +19,7 @@ def project_root() -> Path:
         if (p / ".knowledge-project").exists():
             return p
         p = p.parent
-    raise SystemExit("No .knowledge-project found. Run /init first.")
+    raise SystemExit("No .knowledge-project found. Run /kp-init first.")
 
 
 def slugify(text: str) -> str:
@@ -32,13 +32,13 @@ def slugify(text: str) -> str:
 
 def load_extractions(root: Path) -> list[dict]:
     extractions = []
-    for path in sorted((root / "extractions").glob("*.json")):
+    for path in sorted((root / "staging").glob("*.json")):
         if path.name.endswith(".failed.json"):
             continue
         try:
             data = json.loads(path.read_text())
             if data.get("schema_version") != "1":
-                print(f"Warning: skipping {path.name} — unknown schema_version", file=sys.stderr)
+                print(f"Warning: skipping {path.name} - unknown schema_version", file=sys.stderr)
                 continue
             extractions.append(data)
         except Exception as e:
@@ -121,7 +121,7 @@ _DOC_CODE_RE = re.compile(r'^[A-Z][A-Z0-9-]*\d[A-Z0-9-]*$')
 
 
 def _load_stoplist(root: Path) -> set[str]:
-    stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
+    stoplist_path = root / "wiki" / "config" / "entity_stoplist.txt"
     if not stoplist_path.exists():
         return set()
     return {
@@ -234,7 +234,7 @@ def _glossary_definition(entity: dict, facts: list[dict]) -> tuple[str, bool]:
 
 def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict]) -> list[str]:
     """Write glossary.md and return list of entity names that became stubs."""
-    glossary_path = root / "kb" / "glossary.md"
+    glossary_path = root / "wiki" / "glossary.md"
     lines = [
         "---",
         "title: Glossary",
@@ -272,7 +272,7 @@ def write_glossary(root: Path, entities: list[dict], mode: str, facts: list[dict
         lines.append("")
 
     glossary_path.write_text("\n".join(lines))
-    print(f"  Written: kb/glossary.md ({len(entities)} entries, {len(stubs)} stub(s))")
+    print(f"  Written: wiki/glossary.md ({len(entities)} entries, {len(stubs)} stub(s))")
     return stubs
 
 
@@ -321,7 +321,7 @@ def write_entity_page(
 ) -> Path:
     etype = entity_type_dir(entity["type"])
     slug = entity.get("_slug", slugify(entity["name"]))
-    page_dir = root / "kb" / etype
+    page_dir = root / "wiki" / etype
     page_dir.mkdir(parents=True, exist_ok=True)
     page_path = page_dir / f"{slug}.md"
 
@@ -415,8 +415,8 @@ def write_index_md(root: Path, entities: list[dict], extractions: list[dict]) ->
             lines.append(f"- [[{slug}|{entity['name']}]]")
         lines.append("")
 
-    (root / "kb" / "index.md").write_text("\n".join(lines))
-    print(f"  Written: kb/index.md")
+    (root / "wiki" / "index.md").write_text("\n".join(lines))
+    print(f"  Written: wiki/index.md")
 
 
 def write_index_yaml(
@@ -430,7 +430,7 @@ def write_index_yaml(
     broken_wikilink_count: int = 0,
 ) -> None:
     gaps: dict[str, dict] = {}
-    for qfile in sorted((root / "kb" / "questions").glob("*.md")):
+    for qfile in sorted((root / "wiki" / "queries").glob("*.md")):
         text = qfile.read_text()
         fm_match = re.search(r"---\n(.*?)\n---", text, re.DOTALL)
         if not fm_match:
@@ -524,8 +524,8 @@ def write_index_yaml(
             return f"{pad}{json.dumps(obj)}"
 
     yaml_text = to_yaml(index)
-    (root / "kb" / "index.yaml").write_text(yaml_text + "\n")
-    print(f"  Written: kb/index.yaml")
+    (root / "wiki" / "index.yaml").write_text(yaml_text + "\n")
+    print(f"  Written: wiki/index.yaml")
 
 
 def scan_extraction_quality(extractions: list[dict]) -> dict:
@@ -621,7 +621,7 @@ def write_build_report(root: Path, extraction_quality: dict, overall_quality: st
         "overall_quality": overall_quality,
         "recommendation": recommendation,
     }
-    (root / "kb" / "build-report.json").write_text(json.dumps(report, indent=2) + "\n")
+    (root / "wiki" / "build-report.json").write_text(json.dumps(report, indent=2) + "\n")
 
 
 def _candidate_stoplist_entries(entities: list[dict]) -> list[str]:
@@ -635,18 +635,18 @@ def _wikilink_target(link: str) -> str:
 
 
 def validate_wikilinks(root: Path) -> list[tuple[Path, str]]:
-    kb = root / "kb"
+    wiki = root / "wiki"
     broken = []
-    for md_file in kb.rglob("*.md"):
+    for md_file in wiki.rglob("*.md"):
         text = md_file.read_text()
         for link in re.findall(r"\[\[([^\]]+)\]\]", text):
             target = _wikilink_target(link)
             slug = slugify(target)
-            matches = list(kb.rglob(f"{slug}.md"))
+            matches = list(wiki.rglob(f"{slug}.md"))
             if not matches and target.lower() not in ("glossary",):
                 broken.append((md_file.relative_to(root), link))
     if broken:
-        print(f"\n  Warnings — broken wikilinks ({len(broken)}):")
+        print(f"\n  Warnings - broken wikilinks ({len(broken)}):")
         for path, link in broken[:10]:
             print(f"    {path}: [[{link}]]")
         if len(broken) > 10:
@@ -681,9 +681,9 @@ def _clear_enrichment_flag(qfile: Path) -> None:
 
 
 def run_enrich(root: Path) -> None:
-    questions_dir = root / "kb" / "questions"
+    questions_dir = root / "wiki" / "queries"
     if not questions_dir.exists():
-        print("No questions found. Ask a question with /query first.")
+        print("No queries found. Ask a question with /kp-query first.")
         return
 
     gaps = []
@@ -708,7 +708,7 @@ def run_enrich(root: Path) -> None:
         print("No enrichment gaps found.")
         return
 
-    cleared = [g for g in gaps if g["target"] and _page_has_body(root / "kb" / g["target"])]
+    cleared = [g for g in gaps if g["target"] and _page_has_body(root / "wiki" / g["target"])]
     still_open = [g for g in gaps if g not in cleared]
 
     if cleared:
@@ -723,30 +723,30 @@ def run_enrich(root: Path) -> None:
         return
 
     print(f"Open enrichment gaps ({len(still_open)}):\n")
-    sources_to_reextract: dict[str, list[str]] = {}
+    sources_to_restage: dict[str, list[str]] = {}
 
     for gap in still_open:
         print(f"  Date:     {gap['date']}")
         print(f"  Question: {gap['question']}")
         if gap["target"]:
-            page_path = root / "kb" / gap["target"]
+            page_path = root / "wiki" / gap["target"]
             if page_path.exists():
-                print(f"  Target:   kb/{gap['target']} (thin page, needs enrichment)")
+                print(f"  Target:   wiki/{gap['target']} (thin page, needs enrichment)")
                 for src in _page_sources(page_path):
-                    sources_to_reextract.setdefault(src, []).append(gap["target"])
+                    sources_to_restage.setdefault(src, []).append(gap["target"])
             else:
-                print(f"  Target:   kb/{gap['target']} (page does not exist yet)")
+                print(f"  Target:   wiki/{gap['target']} (page does not exist yet)")
         else:
-            print(f"  Target:   (entity was never extracted -- no KB page exists)")
+            print(f"  Target:   (entity was never staged - no wiki page exists)")
         print()
 
-    if sources_to_reextract:
-        print("Suggested re-extract commands:")
-        for src in sorted(sources_to_reextract):
-            print(f"  /extract --force {src}")
-        print("\nAfter re-extracting, run /kb build, then /kb enrich again to clear flags.")
+    if sources_to_restage:
+        print("Suggested re-stage commands:")
+        for src in sorted(sources_to_restage):
+            print(f"  /kp-staging --force {src}")
+        print("\nAfter re-staging, run /kp-wiki build, then /kp-wiki enrich again to clear flags.")
     else:
-        print("Tip: identify the source for the above topics and run /extract --force <source-id>, then /kb build.")
+        print("Tip: identify the source for the above topics and run /kp-staging --force <source-id>, then /kp-wiki build.")
 
 
 def main():
@@ -764,11 +764,11 @@ def main():
         run_enrich(root)
         return
 
-    kb_dir = root / "kb"
+    wiki_dir = root / "wiki"
 
     extractions = load_extractions(root)
     if not extractions:
-        print("No extractions found. Run /extract first.")
+        print("No staging files found. Run /kp-staging first.")
         sys.exit(0)
 
     for source_dir in sorted((root / "sources").iterdir()):
@@ -784,7 +784,7 @@ def main():
                 print(f"Warning: {source_dir.name} has not been extracted yet.")
 
     extraction_quality = scan_extraction_quality(extractions)
-    print(f"Extraction quality summary:")
+    print(f"Staging quality summary:")
     print(f"  {extraction_quality['total']} sources total")
     if extraction_quality["sources_with_no_entities"]:
         print(f"  {extraction_quality['sources_with_no_entities']} with low entity count")
@@ -793,11 +793,11 @@ def main():
     flagged_sources = extraction_quality["sources_with_warnings"]
     print(f"  {flagged_sources} failed extraction(s)" if flagged_sources else "  0 failed extractions")
 
-    print(f"Building KB from {len(extractions)} extraction(s)...")
+    print(f"Building wiki from {len(extractions)} staging file(s)...")
 
     entities, conflicts = resolve_entities(extractions, confidence_threshold=args.confidence)
     if conflicts:
-        print(f"  Conflicts — type mismatches ({len(conflicts)}):")
+        print(f"  Conflicts - type mismatches ({len(conflicts)}):")
         for c in conflicts[:5]:
             print(f"    {c['name']}: {c['existing_type']} vs {c['new_type']} (from {c['source']})")
         if len(conflicts) > 5:
@@ -812,12 +812,12 @@ def main():
 
     slug_collisions = resolve_slugs(entities)
     if slug_collisions:
-        print(f"  Warnings — slug collisions ({len(slug_collisions)}):")
+        print(f"  Warnings - slug collisions ({len(slug_collisions)}):")
         for slug, types in slug_collisions:
-            print(f"    '{slug}': types {', '.join(types)} — disambiguated with type suffix")
+            print(f"    '{slug}': types {', '.join(types)} - disambiguated with type suffix")
 
-    for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "questions"]:
-        (kb_dir / etype).mkdir(parents=True, exist_ok=True)
+    for etype in ["concepts", "people", "organizations", "places", "products", "events", "other", "topics", "queries"]:
+        (wiki_dir / etype).mkdir(parents=True, exist_ok=True)
 
     stubs = write_glossary(root, entities, args.mode, key_facts)
 
@@ -839,9 +839,9 @@ def main():
 
     overall_quality = _build_overall_quality(extraction_quality)
     write_build_report(root, extraction_quality, overall_quality)
-    print(f"  Written: kb/build-report.json (overall_quality: {overall_quality})")
+    print(f"  Written: wiki/build-report.json (overall_quality: {overall_quality})")
 
-    stoplist_path = root / "kb" / "config" / "entity_stoplist.txt"
+    stoplist_path = root / "wiki" / "config" / "entity_stoplist.txt"
     candidates = _candidate_stoplist_entries(entities)
     if candidates:
         active = _load_stoplist(root)

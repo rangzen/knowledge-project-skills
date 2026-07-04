@@ -1,11 +1,11 @@
-"""Tests for validate_wikilinks() in kb_build.py."""
+"""Tests for validate_wikilinks() in wiki_build.py."""
 import importlib.util
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 
@@ -32,7 +32,7 @@ class TestWikilinkTargetParsing:
 
 class TestValidateWikilinks:
     def _make_kb(self, tmp_path: Path, pages: dict[str, str]) -> Path:
-        kb = tmp_path / "kb"
+        kb = tmp_path / "wiki"
         kb.mkdir()
         for name, content in pages.items():
             (kb / name).write_text(content)

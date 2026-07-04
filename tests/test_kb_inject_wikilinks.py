@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 
@@ -124,7 +124,7 @@ class TestWriteEntityPageWikilinks:
         }
         entity = _entity("Chris", context="Creator of Into the Odd and Cairn.")
         write_entity_page(tmp_path, entity, "build", slug_map)
-        text = (tmp_path / "kb" / "concepts" / "chris.md").read_text()
+        text = (tmp_path / "wiki" / "concepts" / "chris.md").read_text()
         assert "[[into-the-odd|Into the Odd]]" in text
         assert "[[cairn|Cairn]]" in text
 
@@ -132,7 +132,7 @@ class TestWriteEntityPageWikilinks:
         slug_map = {"cairn": ("cairn", "Cairn")}
         entity = _entity("Chris", bodies=[{"source": "src-1", "body": "See Cairn for details."}])
         write_entity_page(tmp_path, entity, "build", slug_map)
-        text = (tmp_path / "kb" / "concepts" / "chris.md").read_text()
+        text = (tmp_path / "wiki" / "concepts" / "chris.md").read_text()
         assert "[[cairn|Cairn]]" in text
 
     def test_multiple_bodies_each_get_wikilinks(self, tmp_path):
@@ -142,7 +142,7 @@ class TestWriteEntityPageWikilinks:
             {"source": "src-2", "body": "Also made Knave."},
         ])
         write_entity_page(tmp_path, entity, "build", slug_map)
-        text = (tmp_path / "kb" / "concepts" / "chris.md").read_text()
+        text = (tmp_path / "wiki" / "concepts" / "chris.md").read_text()
         assert "[[cairn|Cairn]]" in text
         assert "[[knave|Knave]]" in text
 
@@ -153,12 +153,12 @@ class TestWriteEntityPageWikilinks:
         }
         entity = _entity("Chris", context="Chris created Cairn.", slug="chris")
         write_entity_page(tmp_path, entity, "build", slug_map)
-        text = (tmp_path / "kb" / "concepts" / "chris.md").read_text()
+        text = (tmp_path / "wiki" / "concepts" / "chris.md").read_text()
         assert "[[chris|Chris]]" not in text
         assert "[[cairn|Cairn]]" in text
 
     def test_no_slug_map_preserves_plain_text(self, tmp_path):
         entity = _entity("Chris", context="Creator of Cairn.")
         write_entity_page(tmp_path, entity, "build")
-        text = (tmp_path / "kb" / "concepts" / "chris.md").read_text()
+        text = (tmp_path / "wiki" / "concepts" / "chris.md").read_text()
         assert "[[" not in text

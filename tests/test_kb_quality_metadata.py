@@ -1,12 +1,12 @@
-"""Tests for quality metadata in kb_build.py (issues 07 and 08)."""
+"""Tests for quality metadata in wiki_build.py (issues 07 and 08)."""
 import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 
@@ -183,34 +183,34 @@ class TestBuildOverallQuality:
 
 class TestWriteBuildReport:
     def test_creates_file(self, tmp_path):
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         eq = {"total": 5, "sources_with_warnings": 0}
         write_build_report(tmp_path, eq, "ok")
-        report_path = tmp_path / "kb" / "build-report.json"
+        report_path = tmp_path / "wiki" / "build-report.json"
         assert report_path.exists()
 
     def test_ok_quality_no_recommendation_action(self, tmp_path):
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         eq = {"total": 5, "sources_with_warnings": 0}
         write_build_report(tmp_path, eq, "ok")
-        report = json.loads((tmp_path / "kb" / "build-report.json").read_text())
+        report = json.loads((tmp_path / "wiki" / "build-report.json").read_text())
         assert report["overall_quality"] == "ok"
         assert "No action" in report["recommendation"]
 
     def test_warning_quality_has_recommendation(self, tmp_path):
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         eq = {"total": 5, "sources_with_warnings": 2}
         write_build_report(tmp_path, eq, "warning")
-        report = json.loads((tmp_path / "kb" / "build-report.json").read_text())
+        report = json.loads((tmp_path / "wiki" / "build-report.json").read_text())
         assert report["overall_quality"] == "warning"
         assert report["sources_with_warnings"] == 2
         assert "Re-extract" in report["recommendation"]
 
     def test_report_includes_build_date(self, tmp_path):
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         eq = {"total": 3, "sources_with_warnings": 0}
         write_build_report(tmp_path, eq, "ok")
-        report = json.loads((tmp_path / "kb" / "build-report.json").read_text())
+        report = json.loads((tmp_path / "wiki" / "build-report.json").read_text())
         assert "build_date" in report
         assert "Z" in report["build_date"]
 
@@ -221,8 +221,8 @@ class TestWriteBuildReport:
 
 def _setup_project(tmp_path: Path) -> Path:
     (tmp_path / ".knowledge-project").write_text("{}")
-    (tmp_path / "kb").mkdir()
-    (tmp_path / "kb" / "questions").mkdir()
+    (tmp_path / "wiki").mkdir()
+    (tmp_path / "wiki" / "questions").mkdir()
     return tmp_path
 
 
@@ -239,7 +239,7 @@ def _make_ext(source_id: str, flags: list[str] | None = None) -> dict:
 
 class TestIndexYamlQualityBlock:
     def _read_yaml_raw(self, path: Path) -> str:
-        return (path / "kb" / "index.yaml").read_text()
+        return (path / "wiki" / "index.yaml").read_text()
 
     def test_quality_block_present(self, tmp_path):
         root = _setup_project(tmp_path)

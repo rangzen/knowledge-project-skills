@@ -1,11 +1,11 @@
-"""Tests for _glossary_definition() and glossary stub tracking in kb_build.py."""
+"""Tests for _glossary_definition() and glossary stub tracking in wiki_build.py."""
 import importlib.util
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 

@@ -1,11 +1,11 @@
-"""Tests for filter_entities() and _load_stoplist() in kb_build.py."""
+"""Tests for filter_entities() and _load_stoplist() in wiki_build.py."""
 import importlib.util
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).parent.parent / "skills/kb/scripts/kb_build.py"
-spec = importlib.util.spec_from_file_location("kb_build", SCRIPT)
+SCRIPT = Path(__file__).parent.parent / "skills/kp-wiki/scripts/wiki_build.py"
+spec = importlib.util.spec_from_file_location("wiki_build", SCRIPT)
 _mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(_mod)
 
@@ -20,7 +20,7 @@ def _entity(name: str, etype: str = "concept", sources: list[str] | None = None)
 
 def _project(tmp_path: Path, stoplist_lines: list[str] | None = None) -> Path:
     (tmp_path / ".knowledge-project").write_text("{}")
-    config_dir = tmp_path / "kb" / "config"
+    config_dir = tmp_path / "wiki" / "config"
     config_dir.mkdir(parents=True)
     if stoplist_lines is not None:
         (config_dir / "entity_stoplist.txt").write_text("\n".join(stoplist_lines))
@@ -30,7 +30,7 @@ def _project(tmp_path: Path, stoplist_lines: list[str] | None = None) -> Path:
 class TestLoadStoplist:
     def test_missing_file_returns_empty(self, tmp_path):
         (tmp_path / ".knowledge-project").write_text("{}")
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         assert _load_stoplist(tmp_path) == set()
 
     def test_loads_entries(self, tmp_path):
@@ -137,7 +137,7 @@ class TestCandidateStoplistEntries:
 
     def test_no_stoplist_file_skips_stoplist_filter(self, tmp_path):
         (tmp_path / ".knowledge-project").write_text("{}")
-        (tmp_path / "kb").mkdir()
+        (tmp_path / "wiki").mkdir()
         entities = [_entity("About"), _entity("Access")]
         kept, filtered = filter_entities(entities, tmp_path)
         assert filtered == 0
