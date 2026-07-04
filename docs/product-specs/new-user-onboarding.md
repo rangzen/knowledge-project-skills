@@ -20,7 +20,7 @@ using only agent commands with no manual JSON editing.
 ### Step 1 - Initialize the project
 
 ```
-/init
+/kp-init
 ```
 
 Creates the directory scaffolding: `sources/`, `staging/`,
@@ -53,7 +53,7 @@ Lists all sources, their type, and whether they have been extracted yet.
 
 ---
 
-### Step 3 - Extract
+### Step 3 - Staging
 
 ```
 /kp-staging --all
@@ -67,7 +67,7 @@ For a PDF, the output includes: `entities`, `summary`, `key_facts`, `dates`,
 
 ---
 
-### Step 4 - Build the knowledge base
+### Step 4 - Build the knowledge base (wiki)
 
 ```
 /kp-wiki build
@@ -99,9 +99,9 @@ pages, and low-confidence answers surface as extraction gaps.
 
 ## Error states to handle gracefully
 
-- `init` called in a directory that already has a `.knowledge-project` file →
+- `kp-init` called in a directory that already has a `.knowledge-project` file →
   warn and ask for confirmation before overwriting.
-- `extract` called with no sources → print helpful message pointing to `ingestion add`.
+- `kp-source` called with no sources → print helpful message pointing to `source add`.
 - `kp-wiki build` called with no extractions → print helpful message pointing to `kp-staging`.
 - `kp-wiki build` called with partial extractions → build from what exists, warn about missing sources.
 

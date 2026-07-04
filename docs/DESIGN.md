@@ -9,19 +9,19 @@
 ## Design principles
 
 ### Pipeline over monolith
-Each skill does one thing. `ingestion` does not extract. `extract` does not
-build the KB. Composability is preferred over convenience shortcuts that
+Each skill does one thing. `kp-source` does not stage. `kp-staging` does not
+build the wiki. Composability is preferred over convenience shortcuts that
 skip stages.
 
 ### Deterministic outputs
-Given the same source and the same model/version, `extract` should produce
-the same output. Nondeterminism is a bug, not a feature. The extract skill
+Given the same source and the same model/version, `kp-staging` should produce
+the same output. Nondeterminism is a bug, not a feature. The kp-staging skill
 prompt instructs the agent to produce consistent, structured output; there is
 no script-level temperature control because extraction runs inside the agent
 rather than via a separate API call.
 
 ### Graceful degradation
-A missing extraction does not break `kb build`. Each skill degrades gracefully and communicates clearly
+A missing staging file does not break `/kp-wiki build`. Each skill degrades gracefully and communicates clearly
 what is missing rather than failing silently.
 
 ### Python scripts for reproducible operations
@@ -35,9 +35,9 @@ same input must produce the same output across different assistants, runs, or
 model versions.
 
 ### Schema-first extraction
-The `extractions/<source-id>.json` schema is defined up front in
-`skills/extract/SKILL.md` (Output schema section) and enforced by
-`skills/extract/scripts/write_extraction.py`. The schema version is recorded in
+The `staging/<source-id>.json` schema is defined up front in
+`skills/kp-staging/SKILL.md` (Output schema section) and enforced by
+`skills/kp-staging/scripts/write_extraction.py`. The schema version is recorded in
 every output file so downstream tools can detect and handle breaking changes.
 
 ---
@@ -46,8 +46,8 @@ every output file so downstream tools can detect and handle breaking changes.
 
 | Decision | Rationale |
 |---|---|
-| One JSON file per source in `extractions/` | Simplest unit of reprocessing; easy to diff; no shared mutable state |
-| `source_ref` required on every extracted item | Provenance is non-negotiable — see [core-beliefs.md](design-docs/core-beliefs.md#2-provenance-is-non-negotiable) |
-| KB is a generated view | Prevents KB drift from becoming a maintenance burden |
-| Questions in `kb/questions/` feed back into KB build | Connects user questions to knowledge organization structurally, not ad hoc |
+| One JSON file per source in `staging/` | Simplest unit of reprocessing; easy to diff; no shared mutable state |
+| `source_ref` required on every extracted item | Provenance is non-negotiable - see [core-beliefs.md](design-docs/core-beliefs.md#2-provenance-is-non-negotiable) |
+| Wiki is a generated view | Prevents wiki drift from becoming a maintenance burden |
+| Questions in `wiki/queries/` feed back into wiki build | Connects user questions to knowledge organization structurally, not ad hoc |
 | Python scripts when reproducibility is needed | Same input → same output across assistants and runs; avoids ad-hoc code generation |

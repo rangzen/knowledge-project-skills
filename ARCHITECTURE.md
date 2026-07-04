@@ -14,10 +14,10 @@ Gemini CLI, and others) from their configured skills directory.
 
 ```
 <skill-name>/
-├── SKILL.md          # Required — name, description, instructions
-├── scripts/          # Optional — Python scripts for reproducible operations
-├── references/       # Optional — documentation, llms.txt files
-└── assets/           # Optional — templates, static resources
+├── SKILL.md          # Required - name, description, instructions
+├── scripts/          # Optional - Python scripts for reproducible operations
+├── references/       # Optional - documentation, llms.txt files
+└── assets/           # Optional - templates, static resources
 ```
 
 ### SKILL.md structure
@@ -25,7 +25,7 @@ Gemini CLI, and others) from their configured skills directory.
 ```markdown
 ---
 name: <skill-name>
-description: <one or two sentences — used for discovery>
+description: <one or two sentences - used for discovery>
 ---
 
 ## Instructions
@@ -34,7 +34,7 @@ description: <one or two sentences — used for discovery>
 
 The `description` is the discovery key: agents load only `name` + `description`
 at startup, then read the full file when a task matches. Keep descriptions precise
-so activation fires on the right tasks — not too broad, not too narrow.
+so activation fires on the right tasks - not too broad, not too narrow.
 
 ---
 
@@ -43,18 +43,18 @@ so activation fires on the right tasks — not too broad, not too narrow.
 ```
 knowledge-project-skills/
 ├── skills/                   ← skill folders (npx skills, Claude Code, Cursor, etc.)
-│   ├── init/                 ← /init skill
+│   ├── kp-init/                 ← /kp-init skill
 │   │   └── SKILL.md
-│   ├── ingestion/            ← /ingestion skill
+│   ├── kp-source/            ← /kp-source skill
 │   │   ├── SKILL.md
 │   │   └── scripts/
-│   ├── extract/              ← /extract skill
+│   ├── kp-staging/              ← /kp-staging skill
 │   │   ├── SKILL.md
 │   │   └── scripts/
-│   ├── kb/                   ← /kb skill
+│   ├── kp-wiki/                   ← /kp-wiki skill
 │   │   ├── SKILL.md
 │   │   └── scripts/
-│   └── query/                ← /query skill
+│   └── kp-query/                ← /kp-query skill
 │       └── SKILL.md
 ├── AGENTS.md
 ├── ARCHITECTURE.md
@@ -64,7 +64,7 @@ knowledge-project-skills/
 
 Skills that include a `scripts/` directory use Python for operations where
 reproducibility matters (parsing source files, writing structured output).
-Not every skill needs scripts — `init` and `query` may be fully instruction-driven.
+Not every skill needs scripts - `init` and `query` may be fully instruction-driven.
 
 ---
 
@@ -80,7 +80,7 @@ sources/  →  ingestion  →  extraction  →  kb build  →  query
 ```
 
 Each stage produces artifacts consumed by the next. The pipeline is designed
-for incremental operation — any stage can run independently on partial data.
+for incremental operation - any stage can run independently on partial data.
 
 ### Stage artifacts
 
@@ -90,28 +90,28 @@ sources/
         ├── <file>           ← ingestion writes
         └── .meta.json       ← ingestion writes (provenance: origin, hash, date)
 
-extractions/
+staging/
   └─ <source-id>.json        ← extract reads sources/, writes structured JSON
                                fields: entities, summary, key_facts, dates,
                                schema (structured sources), images (PDFs), source_ref
 
-kb/
-  ├── index.yaml             ← kb reads extractions/ + questions/, writes
-  ├── index.md               ← kb reads extractions/ + questions/, writes
-  ├── glossary.md            ← kb reads extractions/, writes
-  ├── <type>/<topic>.md      ← kb reads extractions/, writes one page per entity
-  └── questions/
-        └── YYYY-MM-DD-<slug>.md  ← query writes; kb reads back on next build
+wiki/
+  ├── index.yaml             ← kp-wiki reads staging/ + queries/, writes
+  ├── index.md               ← kp-wiki reads staging/ + queries/, writes
+  ├── glossary.md            ← kp-wiki reads staging/, writes
+  ├── <type>/<topic>.md      ← kp-wiki reads staging/, writes one page per entity
+  └── queries/
+        └── YYYY-MM-DD-<slug>.md  ← kp-query writes; kp-wiki reads back on next build
 ```
 
 ### Compound knowledge loop
 
-`kb/questions/` closes a feedback loop: each answered question — with its
-confidence level and answer sources — is read by the next `kb build` to
+`wiki/queries/` closes a feedback loop: each answered question - with its
+confidence level and answer sources - is read by the next `/kp-wiki build` to
 prioritize frequently asked topics and flag extraction gaps.
 
 ```
-query → kb/questions/ → kb build → better kb → better answers → query → …
+kp-query → wiki/queries/ → kp-wiki build → better wiki → better answers → kp-query → …
 ```
 
 ---
@@ -124,8 +124,8 @@ git-versionable, agent-readable, no database required.
 
 ```
 Semantic layer
-├── extractions/      ← entity index, per source (JSON)
-└── kb/               ← resolved, cross-linked, agent-ready
+├── staging/      ← entity index, per source (JSON)
+└── wiki/               ← resolved, cross-linked, agent-ready
     ├── index.yaml    ← agent entry point (typed links, metadata, search hints)
     ├── index.md      ← human / Obsidian entry point
     ├── glossary.md   ← resolved terminology, cross-source
@@ -137,11 +137,11 @@ Semantic layer
 
 ## Layering rules
 
-1. **No reverse dependencies.** `kb` never writes to `extractions/`.
+1. **No reverse dependencies.** `kb` never writes to `staging/`.
 2. **Extractions are immutable after generation.** Re-running `extract` replaces, never patches.
-3. **Glossary is derived, not authoritative.** Source of truth is the extraction, not `kb/glossary.md`.
+3. **Glossary is derived, not authoritative.** Source of truth is the extraction, not `wiki/glossary.md`.
 4. **The KB is a view.** Rebuild from scratch at any time. Pages with `manual: true` frontmatter are preserved.
-5. **`kb/index.yaml` is the agent contract.** Schema is versioned; breaking changes require a version bump in `.knowledge-project`.
+5. **`wiki/index.yaml` is the agent contract.** Schema is versioned; breaking changes require a version bump in `.knowledge-project`.
 
 ---
 
@@ -152,7 +152,7 @@ Concept mapping to [ai-research-os-workshop](https://github.com/iusztinpaul/ai-r
 | This project | ai-research-os-workshop |
 |---|---|
 | `sources/` | raw data / documents layer |
-| `extractions/` | processed / structured layer |
-| `kb/glossary.md` | ontology / vocabulary |
-| `kb/` | knowledge base |
-| `kb/questions/` | retrieval + feedback loop |
+| `staging/` | processed / structured layer |
+| `wiki/glossary.md` | ontology / vocabulary |
+| `wiki/` | knowledge base |
+| `wiki/queries/` | retrieval + feedback loop |

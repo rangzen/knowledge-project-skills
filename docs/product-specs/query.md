@@ -62,8 +62,8 @@ date: 2026-06-21
 question: "What are the main findings in the 2025 report?"
 confidence: high
 answer_sources:
-  - type: kb_page
-    ref: kb/concepts/findings-2025.md
+  - type: wiki_page
+    ref: wiki/concepts/findings-2025.md
   - type: extraction
     ref: staging/src-001.json
   - type: source

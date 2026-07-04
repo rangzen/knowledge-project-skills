@@ -3,7 +3,7 @@
 The "frontend" for a knowledge project is the `wiki/` directory - the knowledge
 base generated and maintained by the 'wiki' skill.
 
-→ KB skill spec: [product-specs/kb.md](product-specs/kb.md)
+→ kp-wiki skill spec: [product-specs/wiki.md](product-specs/wiki.md)
 
 ---
 
@@ -96,7 +96,7 @@ A topic named "Large Language Model" produces `wiki/concepts/large-language-mode
 Pages are grouped in subdirectories by entity type:
 
 ```
-kb/
+wiki/
 ├── index.yaml
 ├── index.md
 ├── glossary.md
@@ -120,8 +120,8 @@ date: 2026-06-21
 question: "What are the main findings in the 2025 report?"
 confidence: high          # high | medium | low
 answer_sources:
-  - type: kb_page
-    ref: kb/concepts/findings-2025.md
+  - type: wiki_page
+    ref: wiki/concepts/findings-2025.md
   - type: extraction
     ref: staging/src-001.json
   - type: source

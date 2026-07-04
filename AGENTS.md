@@ -23,7 +23,7 @@ Skills target Claude Code, Cursor, Codex, and compatible assistants.
 | `kp-source` | Add sources, track provenance, check updates | [product-specs/ingestion.md](docs/product-specs/ingestion.md) |
 | `kp-staging` | Run LLM/rule-based extractors over sources | [product-specs/extract.md](docs/product-specs/extract.md) |
 | `kp-query` | Ask questions, log answers, identify gaps | [product-specs/query.md](docs/product-specs/query.md) |
-| `kp-wiki` | Build / update the wiki (`wiki/`) - includes glossary generation | [product-specs/kb.md](docs/product-specs/kb.md) |
+| `kp-wiki` | Build / update the wiki (`wiki/`) - includes glossary generation | [product-specs/wiki.md](docs/product-specs/wiki.md) |
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Status**: draft
 **Command**: `/kp-init`
-**SKILL.md description**: Scaffold a new knowledge project in the current directory. Use when the user runs /init, wants to start a new knowledge project, or needs to create the project directory structure.
+**SKILL.md description**: Scaffold a new knowledge project in the current directory. Use when the user runs /kp-init, wants to start a new knowledge project, or needs to create the project directory structure.
 
 ---
 
@@ -16,9 +16,9 @@ Create the directory scaffolding and config file for a knowledge project. After
 ## Invocation
 
 ```
-/init
-/init --name "My Project"
-/init --private-queries     # excludes wiki/queries/ from git
+/kp-init
+/kp-init --name "My Project"
+/kp-init --private-queries     # excludes wiki/queries/ from git
 ```
 
 ---
@@ -31,8 +31,8 @@ Creates the following structure in the current directory:
 ./
 ├── sources/
 ├── staging/
-├── kb/
-│   └── questions/
+├── wiki/
+│   └── queries/
 ├── .knowledge-project      ← project config (see schema below)
 └── .gitignore              ← generated defaults
 ```
@@ -69,5 +69,5 @@ created_at: <ISO date>
 
 ## Scripts
 
-No scripts required. `init` is fully instruction-driven: create directories,
+No scripts required. `/kp-init` is fully instruction-driven: create directories,
 write `.knowledge-project`, write `.gitignore`.

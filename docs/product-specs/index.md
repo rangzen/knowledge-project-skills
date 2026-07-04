@@ -5,9 +5,9 @@ All specs for the six knowledge-project skills.
 | Spec | Command | Status |
 |---|---|---|
 | [init.md](init.md) |  `kp-init` | draft |
-| [ingestion.md](ingestion.md) |  `kp-source` | draft |
-| [extract.md](extract.md) |  `kp-staging` | draft |
-| [kb.md](kb.md) | 'wiki' | draft |
+| [source.md](source.md) |  `kp-source` | draft |
+| [staging.md](staging.md) |  `kp-staging` | draft |
+| [wiki.md](wiki.md) | `kp-wiki` | draft |
 | [query.md](query.md) |  `kp-query` | draft |
 | [new-user-onboarding.md](new-user-onboarding.md) | *(cross-cutting)* | draft |
 

@@ -64,11 +64,11 @@ Update the entity extraction rule: "Include entities for significant rule system
 
 **Files to change**
 
-- `skills/extract/SKILL.md`
+- `skills/kp-staging/SKILL.md`
   - Add `body` to the entity object in the extraction prompt template.
   - Add `body` to the Output schema table with description "Optional markdown string. Full content block for the entity. Omit for shallow entities."
   - Update the `entities` extraction rule to include the `body` guidance and the mechanic/procedure guidance above.
-- `skills/extract/scripts/write_extraction.py`
+- `skills/kp-staging/scripts/write_extraction.py`
   - Accept `body` in entity objects; pass through to output without modification.
   - Do not require it; existing extractions without `body` remain valid.
 
@@ -127,11 +127,11 @@ The one-liner (`context`) becomes the lead paragraph under the heading. The `bod
 
 **Files to change**
 
-- `skills/kb/scripts/kb_build.py`
+- `skills/kp-wiki/scripts/wiki_build.py`
   - In the entity dict built from extractions, store `body` alongside `context`.
   - In the page-writer: write `context` as the lead paragraph, then append `body` content if present.
   - If the same entity appears in multiple extractions with different `body` values, concatenate them under a source attribution header (e.g. `### From cairn`).
-- `skills/kb/SKILL.md`
+- `skills/kp-wiki/SKILL.md`
   - Document the `body` field in the entity page description.
 
 **Acceptance criteria**
@@ -162,7 +162,7 @@ enrichment_needed: true
 enrichment_target: null   # entity page missing entirely
 ```
 
-- `skills/query/SKILL.md`: add `enrichment_needed` and `enrichment_target` to the question file format. Document the heuristic. This is advisory -- the user triggers enrichment manually.
+- `skills/kp-query/SKILL.md`: add `enrichment_needed` and `enrichment_target` to the question file format. Document the heuristic. This is advisory -- the user triggers enrichment manually.
 
 **3b — `/kp-wiki enrich` sub-command**
 
@@ -174,8 +174,8 @@ New sub-command that surfaces the gaps:
 4. After the user re-extracts and runs `/kp-wiki build`, the enriched `body` lands in the page.
 5. Clear `enrichment_needed` on question files whose target page now has a `body`.
 
-- `skills/kb/SKILL.md`: add `enrich` sub-command spec.
-- `skills/kb/scripts/kb_build.py`: add `--mode enrich`.
+- `skills/kp-wiki/SKILL.md`: add `enrich` sub-command spec.
+- `skills/kp-wiki/scripts/wiki_build.py`: add `--mode enrich`.
 
 **Acceptance criteria**
 

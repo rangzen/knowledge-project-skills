@@ -1,8 +1,8 @@
-# Spec: kb
+# Spec: wiki
 
 **Status**: draft
 **Command**: `/kp-wiki`
-**SKILL.md description**: Build or update the knowledge base in kb/ from extracted content. Use when the user runs /kb, wants to build or rebuild the KB, needs to generate the glossary and wiki pages, or wants to add a manual page to the knowledge base.
+**SKILL.md description**: Build or update the wiki in wiki/ from staged content. Use when the user runs /kp-wiki, wants to build or rebuild the wiki, needs to generate the glossary and wiki pages, or wants to add a manual page to the wiki.
 
 ---
 
@@ -40,7 +40,7 @@ Produces the glossary, one Markdown page per entity, and both entry points
 ## Output
 
 ```
-kb/
+wiki/
 ├── index.yaml
 ├── index.md
 ├── glossary.md

@@ -1,7 +1,7 @@
-# Core Beliefs — Agent-First Operating Principles
+# Core Beliefs - Agent-First Operating Principles
 
 These beliefs define how this repository approaches knowledge work.
-They are constraints, not guidelines — when a design decision conflicts with
+They are constraints, not guidelines - when a design decision conflicts with
 a belief listed here, the belief wins unless explicitly revisited.
 
 ---
@@ -13,7 +13,7 @@ queryable, cross-linked knowledge. Optimizing for code cleanliness at the expens
 of knowledge quality is the wrong trade.
 
 **Implication**: Skills are judged by the quality of their output artifacts
-(`extractions/`, `kb/`), not by code elegance.
+(`staging/`, `wiki/`), not by code elegance.
 
 ---
 
@@ -30,18 +30,19 @@ are not acceptable. See [ARCHITECTURE.md](../../ARCHITECTURE.md) for the
 
 ## 3. Extraction is progressive, not one-shot
 
-A first pass produces rough structure. Subsequent passes refine, add relations,
-and resolve conflicts. The pipeline is designed for iteration, not for single runs.
+A first pass produces rough structure. You iterate by re-running with better
+prompts, more sources, or a refined model - not by patching individual records.
+Each run is a full replacement, which is what makes it safely repeatable.
 
-**Implication**: Re-running `extract` replaces the previous output rather than
-patching it. Version history is preserved by git, not by the skill itself.
+**Implication**: Re-running `/kp-staging` replaces the previous output entirely.
+Git is the diff layer between iterations; the skill itself has no patch mode.
 
 ---
 
 ## 4. Agents start from stable entry points
 
 Context injection is expensive. Agents are given AGENTS.md as a minimal, stable
-map and directed to specific docs on demand — not a full knowledge dump.
+map and directed to specific docs on demand - not a full knowledge dump.
 
 **Implication**: AGENTS.md must stay under ~100 lines. Detail belongs in the doc
 it describes, not in the map.
@@ -50,32 +51,32 @@ it describes, not in the map.
 
 ## 5. Questions are compound knowledge
 
-Every question asked — and how it was answered — is saved to `kb/questions/`
-as a first-class KB artifact. The record includes: the date, the question,
-the answer, which KB pages / extractions / raw sources were consulted, and
+Every question asked - and how it was answered - is saved to `wiki/queries/`
+as a first-class wiki artifact. The record includes: the date, the question,
+the answer, which wiki pages / staging / raw sources were consulted, and
 the confidence level.
 
-On the next `/kb build`, these files are read as an additional input layer:
-- Frequently asked topics become first-class KB pages.
-- Low-confidence answers flag extraction gaps for the next `/extract` pass.
+On the next `/kp-wiki build`, these files are read as an additional input layer:
+- Frequently asked topics become first-class wiki pages.
+- Low-confidence answers flag extraction gaps for the next `/kp-staging` pass.
 - The answer-source trail informs how entities and relationships are weighted.
 
 This creates a **compound knowledge loop**: each question makes future answers
 to related questions easier and better, without re-reading the original sources.
 
-**Implication**: `kb/questions/` is not a log to be archived or rotated. It is
-a living part of the knowledge base, versioned alongside everything else in `kb/`.
-Its value grows over time — discarding it discards accumulated query intelligence.
+**Implication**: `wiki/queries/` is not a log to be archived or rotated. It is
+a living part of the wiki, versioned alongside everything else in `wiki/`.
+Its value grows over time - discarding it discards accumulated query intelligence.
 
 ---
 
 ## 6. The KB is a view, not a source of truth
 
-`kb/` is generated from extractions and the glossary. It can be rebuilt at
-any time. Direct edits to `kb/` files are transient unless explicitly pinned
+`wiki/` is generated from staging and the glossary. It can be rebuilt at
+any time. Direct edits to `wiki/` files are transient unless explicitly pinned
 with `manual: true` in frontmatter.
 
-**Implication**: Do not store original knowledge in `kb/`. Store it in
+**Implication**: Do not store original knowledge in `wiki/`. Store it in
 `sources/` and let the pipeline derive the rest. The one exception is
 manually pinned pages, which are preserved across rebuilds.
 
@@ -112,7 +113,7 @@ Prose is ambiguous. Long-form text cannot be queried by entity or relationship.
 Terminology that is obvious in context to a human ("the model", "the table")
 is unresolvable for an agent without a glossary.
 
-The pipeline's output — extractions and `kb/` (glossary + entity pages + indexes) — is
+The pipeline's output - staging and `wiki/` (glossary + entity pages + indexes) - is
 **agentic documentation**: structured for non-linear access, typed at the entity level,
 and explicit about relationships and provenance. AX (Agent Experience) is a first-class design goal.
 
@@ -122,7 +123,7 @@ is a constraint, not the target.
 
 ---
 
-## 10. Three tiers of source handling — no hard failures
+## 10. Three tiers of source handling - no hard failures
 
 Sources fall into three tiers based on what is already known about them:
 
@@ -148,9 +149,9 @@ A vector database, a graph database, or a search index all require infrastructur
 and diverge from the source of truth over time. Plain files are always in sync,
 git-versionable, diff-able, and accessible to any tool.
 
-The three-tier file layout — `extractions/` (per-source entities),
-`kb/glossary.md` (cross-source synthesis), `kb/*.md` + `kb/index.yaml`
-(navigable graph with a typed agent entry point) — is the semantic layer.
+The three-tier file layout - `staging/` (per-source entities),
+`wiki/glossary.md` (cross-source synthesis), `wiki/*.md` + `wiki/index.yaml`
+(navigable graph with a typed agent entry point) - is the semantic layer.
 No additional infrastructure is needed for an agent to traverse the knowledge graph.
 
 **Implication**: Skills must not require a running service to function. The output

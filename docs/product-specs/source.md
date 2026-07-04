@@ -2,7 +2,7 @@
 
 **Status**: draft
 **Command**: `/kp-source`
-**SKILL.md description**: Add sources to a knowledge project, check for updates, and track provenance. Use when the user runs /ingestion, wants to add a PDF, URL, CSV, database dump, or any other source file, or needs to check whether existing sources have changed.
+**SKILL.md description**: Add sources to a knowledge project, check for updates, and track provenance. Use when the user runs /kp-source, wants to add a PDF, URL, CSV, database dump, or any other source file, or needs to check whether existing sources have changed.
 
 ---
 
