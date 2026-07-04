@@ -1,16 +1,16 @@
-# Spec: query
+# Spec: kp-query
 
 **Status**: draft
-**Command**: `/query`
-**SKILL.md description**: Ask a question against the knowledge base and save the answer with full provenance to kb/questions/. Use when the user runs /query, asks a question about the project's sources, wants to find low-confidence answers, or wants to explore past questions related to a topic.
+**Command**: `/kp-query`
+**SKILL.md description**: Ask a question against the knowledge base and save the answer with full provenance to wiki/queries/. Use when the user runs /query, asks a question about the project's sources, wants to find low-confidence answers, or wants to explore past questions related to a topic.
 
 ---
 
 ## Purpose
 
-Answer questions grounded in the knowledge base and persist each answer — with
-its sources and confidence — as a Markdown file in `kb/questions/`. These files
-feed back into the next `/kb build`, making the knowledge base progressively
+Answer questions grounded in the knowledge base and persist each answer - with
+its sources and confidence - as a Markdown file in `wiki/queries/`. These files
+feed back into the next `/kp-wiki build`, making the knowledge base progressively
 better at answering related questions.
 
 ---
@@ -18,9 +18,9 @@ better at answering related questions.
 ## Invocations
 
 ```
-/query "What are the main findings in the 2025 report?"
-/query --gaps                       # list low-confidence questions from kb/questions/
-/query --related "fine-tuning"      # show past questions related to a topic
+/kp-query "What are the main findings in the 2025 report?"
+/kp-query --gaps                       # list low-confidence questions from wiki/queries/
+/kp-query --related "fine-tuning"      # show past questions related to a topic
 ```
 
 ---
@@ -29,18 +29,18 @@ better at answering related questions.
 
 Answer questions by searching in priority order:
 
-1. `kb/index.yaml` — check if the topic maps to a known entity page.
-2. `kb/<type>/<topic>.md` — read the entity page if found.
-3. `kb/glossary.md` — check for term definitions.
-4. `extractions/<source-id>.json` — search `key_facts` and `summary` fields
+1. `wiki/index.yaml` - check if the topic maps to a known entity page.
+2. `wiki/<type>/<topic>.md` - read the entity page if found.
+3. `wiki/glossary.md` - check for term definitions.
+4. `staging/<source-id>.json` - search `key_facts` and `summary` fields
    directly if the KB does not cover the topic.
-5. `kb/questions/` — check if a past question closely matches; surface the
+5. `wiki/queries/` - check if a past question closely matches; surface the
    prior answer as context.
 
 Assign a confidence level:
-- `high` — answered from a KB entity page or glossary with a clear `source_ref`.
-- `medium` — answered from extractions directly; no KB page exists yet.
-- `low` — no strong match found; answer is inferential or partial.
+- `high` - answered from a KB entity page or glossary with a clear `source_ref`.
+- `medium` - answered from extractions directly; no KB page exists yet.
+- `low` - no strong match found; answer is inferential or partial.
 
 ---
 
@@ -49,7 +49,7 @@ Assign a confidence level:
 One Markdown file per question:
 
 ```
-kb/questions/YYYY-MM-DD-<slug>.md
+wiki/queries/YYYY-MM-DD-<slug>.md
 ```
 
 Slug: lowercase, hyphens, max 60 chars, derived from the question text.
@@ -65,7 +65,7 @@ answer_sources:
   - type: kb_page
     ref: kb/concepts/findings-2025.md
   - type: extraction
-    ref: extractions/src-001.json
+    ref: staging/src-001.json
   - type: source
     ref: sources/src-001/report-2025.pdf
 related_questions:
@@ -90,29 +90,29 @@ and cross-checked against the raw extraction for `src-001`.
 
 ## `--gaps`
 
-Read frontmatter of all files in `kb/questions/`. List questions where
+Read frontmatter of all files in `wiki/queries/`. List questions where
 `confidence: low` or `confidence: medium`, grouped by topic. Output is a
 concise table: question slug, confidence, date, related entity (if any).
 
-This output is the recommended input to the next `/extract --all --force`
-run — gaps indicate where more extraction work is needed.
+This output is the recommended input to the next `/kp-staging --all --force`
+run - gaps indicate where more extraction work is needed.
 
 ---
 
 ## `--related <topic>`
 
-Scan frontmatter of all files in `kb/questions/` for questions whose
+Scan frontmatter of all files in `wiki/queries/` for questions whose
 `answer_sources` reference the same entity or whose question text contains
 the topic string. Return matching question files sorted by date descending.
 
-Reads frontmatter only — no full-text load — so it stays fast at scale.
+Reads frontmatter only - no full-text load - so it stays fast at scale.
 
 ---
 
 ## Behavior
 
-- If `kb/` does not exist: fall back to querying `extractions/` directly.
-  Still write the question file to `kb/questions/` (create directory if needed).
+- If `wiki/` does not exist: fall back to querying `staging/` directly.
+  Still write the question file to `wiki/queries/` (create directory if needed).
 - If no extractions exist: answer from agent knowledge only; set
   `confidence: low`; note the absence of sources in the answer.
 - Slug collisions (same question asked twice on the same day): append `-2`,
@@ -123,5 +123,5 @@ Reads frontmatter only — no full-text load — so it stays fast at scale.
 ## Scripts
 
 Query is primarily instruction-driven. A lightweight script may assist with:
-- Frontmatter-only scanning of `kb/questions/` for `--gaps` and `--related`
+- Frontmatter-only scanning of `wiki/queries/` for `--gaps` and `--related`
 - Slug generation from question text

@@ -1,7 +1,7 @@
-# Spec: init
+# Spec: kp-init
 
 **Status**: draft
-**Command**: `/init`
+**Command**: `/kp-init`
 **SKILL.md description**: Scaffold a new knowledge project in the current directory. Use when the user runs /init, wants to start a new knowledge project, or needs to create the project directory structure.
 
 ---
@@ -9,7 +9,7 @@
 ## Purpose
 
 Create the directory scaffolding and config file for a knowledge project. After
-`init`, the project is ready to receive sources via `/ingestion add`.
+`init`, the project is ready to receive sources via `/kp-source add`.
 
 ---
 
@@ -18,7 +18,7 @@ Create the directory scaffolding and config file for a knowledge project. After
 ```
 /init
 /init --name "My Project"
-/init --private-queries     # excludes kb/questions/ from git
+/init --private-queries     # excludes wiki/queries/ from git
 ```
 
 ---
@@ -30,7 +30,7 @@ Creates the following structure in the current directory:
 ```
 ./
 ├── sources/
-├── extractions/
+├── staging/
 ├── kb/
 │   └── questions/
 ├── .knowledge-project      ← project config (see schema below)
@@ -48,10 +48,10 @@ created_at: <ISO date>
 ### Generated `.gitignore`
 
 ```gitignore
-# Sensitive sources (add individually with /ingestion add --sensitive)
+# Sensitive sources (add individually with /kp-source add --sensitive)
 
 # Uncomment to exclude question history from public repos:
-# kb/questions/
+# wiki/queries/
 ```
 
 ---
@@ -62,8 +62,8 @@ created_at: <ISO date>
   overwriting. Do not silently clobber an existing project.
 - `--name` sets the project name in `.knowledge-project`. If omitted, use the
   current directory name.
-- `--private-queries` adds `kb/questions/` to `.gitignore`.
-- Does not create `AGENTS.md` or any documentation files — those are separate.
+- `--private-queries` adds `wiki/queries/` to `.gitignore`.
+- Does not create `AGENTS.md` or any documentation files - those are separate.
 
 ---
 

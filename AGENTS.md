@@ -1,4 +1,4 @@
-# AGENTS.md — Knowledge Project Skills
+# AGENTS.md - Knowledge Project Skills
 
 This file is injected into agent context. It is a **map**, not content.
 Read it first, then follow pointers to the relevant source of truth.
@@ -7,7 +7,7 @@ Read it first, then follow pointers to the relevant source of truth.
 
 ## What this repository is
 
-A collection of reusable agent skills for **knowledge projects** — projects where
+A collection of reusable agent skills for **knowledge projects** - projects where
 the primary artifact is structured knowledge extracted from sources, not code.
 Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
@@ -19,47 +19,47 @@ Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 | Command | Purpose | Spec |
 |---|---|---|
-| `init` | Scaffold a new knowledge project | [product-specs/init.md](docs/product-specs/init.md) |
-| `ingestion` | Add sources, track provenance, check updates | [product-specs/ingestion.md](docs/product-specs/ingestion.md) |
-| `extract` | Run LLM/rule-based extractors over sources | [product-specs/extract.md](docs/product-specs/extract.md) |
-| `query` | Ask questions, log answers, identify gaps | [product-specs/query.md](docs/product-specs/query.md) |
-| `kb` | Build / update the knowledge base (`kb/`) — includes glossary generation | [product-specs/kb.md](docs/product-specs/kb.md) |
+| `kp-init` | Scaffold a new knowledge project | [product-specs/init.md](docs/product-specs/init.md) |
+| `kp-source` | Add sources, track provenance, check updates | [product-specs/ingestion.md](docs/product-specs/ingestion.md) |
+| `kp-staging` | Run LLM/rule-based extractors over sources | [product-specs/extract.md](docs/product-specs/extract.md) |
+| `kp-query` | Ask questions, log answers, identify gaps | [product-specs/query.md](docs/product-specs/query.md) |
+| `kp-wiki` | Build / update the wiki (`wiki/`) - includes glossary generation | [product-specs/kb.md](docs/product-specs/kb.md) |
 
 ---
 
 ## Architecture
 
-→ [ARCHITECTURE.md](ARCHITECTURE.md) — domain map, package layering, data flow
+→ [ARCHITECTURE.md](ARCHITECTURE.md) - domain map, package layering, data flow
 
 ---
 
 ## Design
 
-→ [docs/DESIGN.md](docs/DESIGN.md) — design principles and key decisions
-→ [docs/design-docs/index.md](docs/design-docs/index.md) — catalogue with verification status
-→ [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) — agent-first operating principles
+→ [docs/DESIGN.md](docs/DESIGN.md) - design principles and key decisions
+→ [docs/design-docs/index.md](docs/design-docs/index.md) - catalogue with verification status
+→ [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) - agent-first operating principles
 
 ---
 
 ## Plans
 
-→ [docs/PLANS.md](docs/PLANS.md) — how plans work, index of active/completed
-→ [docs/exec-plans/active/](docs/exec-plans/active/) — in-progress work (decision logs included)
-→ [docs/exec-plans/completed/](docs/exec-plans/completed/) — finished plans kept for history
-→ [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) — known debt
+→ [docs/PLANS.md](docs/PLANS.md) - how plans work, index of active/completed
+→ [docs/exec-plans/active/](docs/exec-plans/active/) - in-progress work (decision logs included)
+→ [docs/exec-plans/completed/](docs/exec-plans/completed/) - finished plans kept for history
+→ [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) - known debt
 
 ---
 
 ## Product specs
 
-→ [docs/product-specs/index.md](docs/product-specs/index.md) — all specs indexed
+→ [docs/product-specs/index.md](docs/product-specs/index.md) - all specs indexed
 
 ---
 
 ## References
 
-→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) — Agent Skills format spec (skill folder structure, SKILL.md, installation per agent)
-→ [docs/references/](docs/references/) — all external reference material
+→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) - Agent Skills format spec (skill folder structure, SKILL.md, installation per agent)
+→ [docs/references/](docs/references/) - all external reference material
 
 ---
 
@@ -69,25 +69,25 @@ Each skill is a folder with a `SKILL.md` file following the [Agent Skills](https
 Some skills include a `scripts/` directory with Python scripts for reproducible operations.
 When scripts exist, use them rather than generating equivalent code inline.
 
-→ [ARCHITECTURE.md](ARCHITECTURE.md) — skill layout and knowledge pipeline
-→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) — format spec and installation per agent
+→ [ARCHITECTURE.md](ARCHITECTURE.md) - skill layout and knowledge pipeline
+→ [docs/references/agentskills-io-specifications.md](docs/references/agentskills-io-specifications.md) - format spec and installation per agent
 
 ---
 
 ## Rules for agents
 
 0. **This repo is the source, not the install target.** This repository is where skills are developed, bug-reported, analysed, and improved. The installed copies live elsewhere (e.g. `~/.claude/skills/`). Do NOT read, inspect, or modify files under `~/.claude/` or any home-directory path. When investigating a bug or working on a skill, use the source files in `skills/<name>/` inside this repo.
-1. **AGENTS.md is a map.** Never inline detail here — link to the doc that owns it.
+1. **AGENTS.md is a map.** Never inline detail here - link to the doc that owns it.
 2. **Follow links before asking.** If a pointer exists, read the target first.
 3. **Use skill scripts when present.** If a skill has a `scripts/` directory, use those scripts rather than generating equivalent code ad hoc.
 4. **Plans are first-class.** Complex work gets a file in `docs/exec-plans/active/`.
 5. **No orphan docs.** Every doc must appear in an index or be linked from here.
 6. **Verification status matters.** Check `docs/design-docs/index.md` before trusting a design doc.
-7. **Cross-link liberally.** Use relative Markdown links. `[[wikilinks]]` in `kb/` output only.
+7. **Cross-link liberally.** Use relative Markdown links. `[[wikilinks]]` in `wiki/` output only.
 8. **Bump the minor version on every skill change.** When modifying a `SKILL.md`, increment the `metadata.version` minor number (e.g. `1.2` → `1.3`). After `1.9` the next version is `1.10`, not `2.0`.
-9. **Three tiers of source handling — no hard failures.** (1) Dedicated scripts exist for PDF, DOCX, Excel, CSV, JSON — use them; they extract content and structural metadata. (2) Plain-text formats (md, txt, mermaid, etc.) are read directly. (3) Any other format: attempt a direct read; if the content is not usable, write ad-hoc inline code to extract what is accessible. Never refuse extraction on the grounds that a format is "unsupported".
+9. **Three tiers of source handling - no hard failures.** (1) Dedicated scripts exist for PDF, DOCX, Excel, CSV, JSON - use them; they extract content and structural metadata. (2) Plain-text formats (md, txt, mermaid, etc.) are read directly. (3) Any other format: attempt a direct read; if the content is not usable, write ad-hoc inline code to extract what is accessible. Never refuse extraction on the grounds that a format is "unsupported".
 10. **Skill links must be self-contained.** Links inside a `SKILL.md` or any file under `skills/<name>/` must only point to other files within that same skill directory. When a skill is installed in a user's project, the repo's `docs/`, design docs, product specs, and any other top-level directories do not exist. Never link from a skill to `../../../docs/` or any path outside `skills/<name>/`.
-11. **Commit message format.** Subject line: `topic_1: topic_2: short description` — all lowercase, no period. Then a blank line, then one explanation sentence per line, each starting with a capital letter and ending with a period. Example:
+11. **Commit message format.** Subject line: `topic_1: topic_2: short description` - all lowercase, no period. Then a blank line, then one explanation sentence per line, each starting with a capital letter and ending with a period. Example:
    ```
    extract: scripts: add two-stage extraction pipeline
 

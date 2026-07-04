@@ -1,27 +1,27 @@
-# Spec: extract
+# Spec: kp-staging
 
 **Status**: draft
-**Command**: `/extract`
-**SKILL.md description**: Run LLM-based or rule-based extractors over ingested sources and write structured JSON to extractions/. Use when the user runs /extract, wants to process a source, or asks to extract entities, summaries, key facts, or schema from a document.
+**Command**: `/kp-staging`
+**SKILL.md description**: Run LLM-based or rule-based extractors over ingested sources and write structured JSON to staging/. Use when the user runs /extract, wants to process a source, or asks to extract entities, summaries, key facts, or schema from a document.
 
 ---
 
 ## Purpose
 
 Transform raw sources in `sources/` into structured JSON extractions in
-`extractions/`. Each extraction is self-contained and schema-versioned so
-downstream skills (`kb`, `query`) can depend on a stable contract.
+`staging/`. Each extraction is self-contained and schema-versioned so
+downstream skills ('wiki', `query`) can depend on a stable contract.
 
 ---
 
 ## Invocations
 
 ```
-/extract <source-id>
-/extract --all                          # all sources without an extraction
-/extract --all --force                  # re-extract even if extraction exists
-/extract --model claude-opus-4-8        # override default model
-/extract --all --missing-only           # skip sources with existing extractions
+/kp-staging <source-id>
+/kp-staging --all                          # all sources without an extraction
+/kp-staging --all --force                  # re-extract even if extraction exists
+/kp-staging --model claude-opus-4-8        # override default model
+/kp-staging --all --missing-only           # skip sources with existing extractions
 ```
 
 ---
@@ -31,14 +31,14 @@ downstream skills (`kb`, `query`) can depend on a stable contract.
 One JSON file per source:
 
 ```
-extractions/
+staging/
 └── <source-id>.json
 ```
 
 On failure:
 
 ```
-extractions/
+staging/
 └── <source-id>.failed.json    ← error message + timestamp, never overrides a good extraction
 ```
 
@@ -124,7 +124,7 @@ For **PDFs with figures**, `images` is populated:
 
 ## Behavior
 
-- If `extractions/<source-id>.json` already exists and `--force` is not set:
+- If `staging/<source-id>.json` already exists and `--force` is not set:
   skip and notify.
 - On LLM failure or schema validation error: write `.failed.json` with the
   error. Never leave a partial extraction without marking it failed.

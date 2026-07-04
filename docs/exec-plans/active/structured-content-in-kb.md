@@ -7,11 +7,11 @@ KB pages for concept entities are thin stubs. The root cause is a pipeline hole 
 1. **Extraction flattens everything to one-liners.** Every entity gets a `context` (single sentence). Key facts are individual one-liners. Meaningful content blocks from the source -- rule procedures, worked examples, tables, lore passages -- are discarded or scattered as disconnected `key_facts` with no entity to attach to.
 2. **KB builder only uses `entity.context` as page body.** Pages are generated from the one-liner, nothing more.
 3. **Entities are not created for rule systems.** Mechanics like "Combat" never become entities because the extraction prompt targets named vocabulary terms, not procedures. Their rules exist as free-floating `key_facts` with no KB page to land on.
-4. **Query write-back is absent.** When `/query` goes to source and finds richer content than what the KB page holds, it stays in the question file and is never propagated back.
+4. **Query write-back is absent.** When `/kp-query` goes to source and finds richer content than what the KB page holds, it stays in the question file and is never propagated back.
 
 Concrete symptoms from the Cairn example:
-- `kb/concepts/scars.md`: says "A 12-entry table..." but contains no rows. A user asking "what is scar 7?" falls back to the source PDF.
-- `kb/concepts/combat.md`: does not exist. Four combat rules float as `key_facts` with no home.
+- `wiki/concepts/scars.md`: says "A 12-entry table..." but contains no rows. A user asking "what is scar 7?" falls back to the source PDF.
+- `wiki/concepts/combat.md`: does not exist. Four combat rules float as `key_facts` with no home.
 
 ## Goal
 
@@ -19,7 +19,7 @@ After this plan is complete:
 - Entities have a `body` field in the extraction that carries the full meaningful content from the source: rules, procedures, tables (as markdown), examples, anything substantial.
 - Rule systems and game mechanics are extracted as concept entities, not just scattered key_facts.
 - The KB builder uses `body` as the page content when present.
-- `/query` flags KB pages that are thinner than the answer it had to derive from source, so the next re-extraction pass knows where to focus.
+- `/kp-query` flags KB pages that are thinner than the answer it had to derive from source, so the next re-extraction pass knows where to focus.
 
 ---
 
@@ -136,8 +136,8 @@ The one-liner (`context`) becomes the lead paragraph under the heading. The `bod
 
 **Acceptance criteria**
 
-- After extracting `rules-quickstart.pdf` and running `/kb build`: `kb/concepts/combat.md` contains the multiple-attacker rule, impaired/enhanced rule, morale rule, and the Stone Golem example.
-- `kb/concepts/wounds.md` contains the full 6-row Wounds table as markdown.
+- After extracting `rules-quickstart.pdf` and running `/kp-wiki build`: `wiki/concepts/combat.md` contains the multiple-attacker rule, impaired/enhanced rule, morale rule, and the Stone Golem example.
+- `wiki/concepts/wounds.md` contains the full 6-row Wounds table as markdown.
 - Entities with no `body` (`Aldric`, `Ironforge`, `The Depths`) render exactly as before (context one-liner only).
 
 ---
@@ -146,16 +146,16 @@ The one-liner (`context`) becomes the lead paragraph under the heading. The `bod
 
 **What to change**
 
-**3a — `/query` flags enrichment gaps**
+**3a — `/kp-query` flags enrichment gaps**
 
-When `/query` answers by going to source (answer_source type `source`) and a KB page exists for the topic, compare answer richness to the KB page body. If the answer is substantially richer (heuristic: answer body > 2x KB page body length, or answer contains structured content the KB page lacks), set in the saved question frontmatter:
+When `/kp-query` answers by going to source (answer_source type `source`) and a KB page exists for the topic, compare answer richness to the KB page body. If the answer is substantially richer (heuristic: answer body > 2x KB page body length, or answer contains structured content the KB page lacks), set in the saved question frontmatter:
 
 ```yaml
 enrichment_needed: true
 enrichment_target: concepts/scars
 ```
 
-When `/query` answers a question but no KB page exists at all for the entity (e.g. "combat" maps to no page), set:
+When `/kp-query` answers a question but no KB page exists at all for the entity (e.g. "combat" maps to no page), set:
 
 ```yaml
 enrichment_needed: true
@@ -164,14 +164,14 @@ enrichment_target: null   # entity page missing entirely
 
 - `skills/query/SKILL.md`: add `enrichment_needed` and `enrichment_target` to the question file format. Document the heuristic. This is advisory -- the user triggers enrichment manually.
 
-**3b — `/kb enrich` sub-command**
+**3b — `/kp-wiki enrich` sub-command**
 
 New sub-command that surfaces the gaps:
 
-1. Read all `kb/questions/` files where `enrichment_needed: true`.
+1. Read all `wiki/queries/` files where `enrichment_needed: true`.
 2. For each, report: date, question, target page (or "no page exists"), source to re-extract.
-3. Print the exact `/extract --force <source-id>` command(s) to run.
-4. After the user re-extracts and runs `/kb build`, the enriched `body` lands in the page.
+3. Print the exact `/kp-staging --force <source-id>` command(s) to run.
+4. After the user re-extracts and runs `/kp-wiki build`, the enriched `body` lands in the page.
 5. Clear `enrichment_needed` on question files whose target page now has a `body`.
 
 - `skills/kb/SKILL.md`: add `enrich` sub-command spec.
@@ -181,8 +181,8 @@ New sub-command that surfaces the gaps:
 
 - After extracting `rules-quickstart.pdf` with the current schema (no `body`) and asking "what is wound 4?": question file has `enrichment_needed: true`, `enrichment_target: concepts/wounds`.
 - After asking "how does combat work?": question file has `enrichment_needed: true`, `enrichment_target: concepts/combat` (or `null` if no Combat page exists yet).
-- `/kb enrich` lists both gaps and prints the suggested `--force` re-extract commands.
-- After re-extracting with the Phase 1 schema and rebuilding, `/kb enrich` clears both flags.
+- `/kp-wiki enrich` lists both gaps and prints the suggested `--force` re-extract commands.
+- After re-extracting with the Phase 1 schema and rebuilding, `/kp-wiki enrich` clears both flags.
 
 ---
 
@@ -194,7 +194,7 @@ New sub-command that surfaces the gaps:
 | [x] | 2 | Phase 1 — write_extraction.py pass-through (no-op: validator already passes unknown fields) | small | step 1 |
 | [x] | 3 | Phase 2 — kb_build.py uses `body` as page content | small | step 1 |
 | [x] | 4 | Phase 3a — query flags `enrichment_needed` | small | none |
-| [x] | 5 | Phase 3b — `/kb enrich` sub-command | medium | steps 3 + 4 |
+| [x] | 5 | Phase 3b — `/kp-wiki enrich` sub-command | medium | steps 3 + 4 |
 
 ---
 
@@ -207,6 +207,6 @@ New sub-command that surfaces the gaps:
 | 2026-06-24 | `body` is markdown, not structured JSON | The KB is Obsidian markdown; freeform markdown is the natural format and avoids a renderer layer |
 | 2026-06-24 | Schema version stays "1"; `body` is optional | Additive field; all existing extractions remain valid |
 | 2026-06-24 | Enrichment loop is user-triggered, not automatic | Automatic re-extraction on every thin-page query would be too costly and noisy |
-| 2026-06-24 | Enrichment happens inline in `/query`, not as a separate command | Users never remember to run a second command; enriching at query time means the KB improves automatically. `/kb enrich` becomes a retroactive sweep for failures or old gaps |
+| 2026-06-24 | Enrichment happens inline in `/kp-query`, not as a separate command | Users never remember to run a second command; enriching at query time means the KB improves automatically. `/kp-wiki enrich` becomes a retroactive sweep for failures or old gaps |
 | 2026-06-24 | Extraction prompt must explicitly name mechanics/procedures as valid entity types | The extractor was creating vocabulary-term entities but skipping rule systems like Combat; explicit guidance is needed |
 | 2026-06-24 | Body guidance uses domain-neutral language (processes, procedures, period descriptions, diagrams, tables) not game-specific terms | The KB is not game-specific; sources can be any domain |

@@ -1,38 +1,38 @@
 # Spec: kb
 
 **Status**: draft
-**Command**: `/kb`
+**Command**: `/kp-wiki`
 **SKILL.md description**: Build or update the knowledge base in kb/ from extracted content. Use when the user runs /kb, wants to build or rebuild the KB, needs to generate the glossary and wiki pages, or wants to add a manual page to the knowledge base.
 
 ---
 
 ## Purpose
 
-Generate the full knowledge base from `extractions/` and `kb/questions/`.
+Generate the full knowledge base from `staging/` and `wiki/queries/`.
 Produces the glossary, one Markdown page per entity, and both entry points
-(`kb/index.yaml` for agents, `kb/index.md` for Obsidian).
+(`wiki/index.yaml` for agents, `wiki/index.md` for Obsidian).
 
 ---
 
 ## Invocations
 
 ```
-/kb build                   # full rebuild from all extractions
-/kb update                  # rebuild only pages affected by new/changed extractions
-/kb add-page <topic>        # create a manual page (generated: false)
+/kp-wiki build                   # full rebuild from all extractions
+/kp-wiki update                  # rebuild only pages affected by new/changed extractions
+/kp-wiki add-page <topic>        # create a manual page (generated: false)
 ```
 
 ---
 
 ## Internal pipeline (build)
 
-1. **Read** all `extractions/<source-id>.json` files.
-2. **Read** `kb/questions/` frontmatter (for feedback signals).
-3. **Resolve entities** — merge aliases across extractions, deduplicate.
-4. **Write** `kb/glossary.md`.
-5. **Write** one `kb/<type>/<topic>.md` per resolved entity.
-6. **Write** `kb/index.md` (Obsidian entry point).
-7. **Write** `kb/index.yaml` (agent entry point).
+1. **Read** all `staging/<source-id>.json` files.
+2. **Read** `wiki/queries/` frontmatter (for feedback signals).
+3. **Resolve entities** - merge aliases across extractions, deduplicate.
+4. **Write** `wiki/glossary.md`.
+5. **Write** one `wiki/<type>/<topic>.md` per resolved entity.
+6. **Write** `wiki/index.md` (Obsidian entry point).
+7. **Write** `wiki/index.yaml` (agent entry point).
 8. **Report** any broken `[[wikilinks]]` and `index.yaml` file refs as warnings.
 
 ---
@@ -53,7 +53,7 @@ kb/
 └── other/<topic>.md
 ```
 
-### `kb/index.yaml` schema
+### `wiki/index.yaml` schema
 
 ```yaml
 schema_version: "1"
@@ -77,7 +77,7 @@ pages:
   events: []
   topics: []
 
-gaps:                           # populated from kb/questions/ low-confidence entries
+gaps:                           # populated from wiki/queries/ low-confidence entries
   - topic: "fine-tuning costs"
     question_count: 3
     max_confidence: low
@@ -96,10 +96,10 @@ last_built: 2026-06-21
 ---
 ```
 
-Pages with `generated: false` (set by `/kb add-page` or manually) are never
-overwritten by `/kb build`.
+Pages with `generated: false` (set by `/kp-wiki add-page` or manually) are never
+overwritten by `/kp-wiki build`.
 
-### `kb/glossary.md` structure
+### `wiki/glossary.md` structure
 
 Alphabetically sorted. Each entry:
 
@@ -116,12 +116,12 @@ Researcher and lead author of the 2025 report.
 
 ---
 
-## Feedback from `kb/questions/`
+## Feedback from `wiki/queries/`
 
-Before writing, `/kb build` reads the frontmatter of all files in
-`kb/questions/`. It uses:
+Before writing, `/kp-wiki build` reads the frontmatter of all files in
+`wiki/queries/`. It uses:
 
-- `confidence: low` entries → populate `gaps` in `kb/index.yaml`; these
+- `confidence: low` entries → populate `gaps` in `wiki/index.yaml`; these
   signal topics where extractions are thin.
 - Frequently occurring topics → promoted to first-class entity pages if not
   already present.
@@ -149,5 +149,5 @@ Python scripts handle:
 - Entity merging and alias resolution across extractions
 - Alphabetical glossary generation
 - Wikilink resolution and validation
-- `kb/index.yaml` generation and schema validation
+- `wiki/index.yaml` generation and schema validation
 - File-by-file incremental diffing for `update`

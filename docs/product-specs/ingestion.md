@@ -1,7 +1,7 @@
-# Spec: ingestion
+# Spec: kp-source
 
 **Status**: draft
-**Command**: `/ingestion`
+**Command**: `/kp-source`
 **SKILL.md description**: Add sources to a knowledge project, check for updates, and track provenance. Use when the user runs /ingestion, wants to add a PDF, URL, CSV, database dump, or any other source file, or needs to check whether existing sources have changed.
 
 ---
@@ -16,10 +16,10 @@ provenance, detect changes in previously ingested sources.
 ## Invocations
 
 ```
-/ingestion add <path-or-url>
-/ingestion add <path> --sensitive     # excludes source from git
-/ingestion status                     # list all sources and extraction status
-/ingestion check-updates              # detect hash changes in existing sources
+/kp-source add <path-or-url>
+/kp-source add <path> --sensitive     # excludes source from git
+/kp-source status                     # list all sources and extraction status
+/kp-source check-updates              # detect hash changes in existing sources
 ```
 
 ---

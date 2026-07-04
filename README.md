@@ -1,13 +1,13 @@
 # Knowledge Project Skills
 
-A collection of reusable AI agent skills for **knowledge projects** — projects that
+A collection of reusable AI agent skills for **knowledge projects** - projects that
 start with existing documentation and treat it as raw material. The goal is to
 **progressively extract, organize, and surface** the knowledge inside so agents and
 humans can use it without reading everything.
 
 The pipeline ingests sources, extracts entities, concepts, names, and facts using an
 LLM, then builds a navigable wiki you can query. The primary target is not code
-generation — it is structured knowledge: entities, facts, relationships, timelines,
+generation - it is structured knowledge: entities, facts, relationships, timelines,
 summaries, and a navigable wiki built from what was already written.
 
 Some formats need preprocessing scripts to surface text and metadata a plain read
@@ -46,29 +46,29 @@ The pipeline builds a four-tier semantic layer from your existing documentation:
 
 | Tier | Files | What it gives agents |
 |---|---|---|
-| **Entity index** | `extractions/<id>.json` | Named entities with type, source, and context — per source |
-| **Resolved glossary** | `kb/glossary.md` | Canonical terms, aliases, definitions, cross-references — across all sources |
-| **Navigable KB** | `kb/*.md` with `[[wikilinks]]` | Relationship graph between concepts, readable in Obsidian or VS Code |
-| **Agent index** | `kb/index.yaml` | Typed, structured entry point — no Markdown parsing required |
+| **Entity index** | `staging/<id>.json` | Named entities with type, source, and context - per source |
+| **Resolved glossary** | `wiki/glossary.md` | Canonical terms, aliases, definitions, cross-references - across all sources |
+| **Navigable wiki** | `wiki/*.md` with `[[wikilinks]]` | Relationship graph between concepts, readable in Obsidian or VS Code |
+| **Agent index** | `wiki/index.yaml` | Typed, structured entry point - no Markdown parsing required |
 
 This structure makes progressive disclosure possible:
 
-- `init` gives you the scaffold immediately.
-- `ingestion` adds one source at a time.
-- `extract` produces useful output per source — no need to wait for the full corpus.
-- `kb build` improves incrementally with each new extraction — glossary and pages regenerate together.
-- `query` works at any stage; each question is saved and feeds the next build.
+- `/kp-init` gives you the scaffold immediately.
+- `/kp-source` adds one source at a time.
+- `/kp-staging` produces useful output per source - no need to wait for the full corpus.
+- `/kp-wiki build` improves incrementally with each new extraction - glossary and pages regenerate together.
+- `/kp-query` works at any stage; each question is saved and feeds the next build.
 
-An agent always starts from `kb/index.yaml` — a typed, stable map — and follows
+An agent always starts from `wiki/index.yaml` - a typed, stable map - and follows
 links only as deep as the question requires. The semantic layer is what makes
 that navigation precise instead of speculative.
 
 ### AX (Agent Experience) properties
 
-- **Stable, typed entry point** — `kb/index.yaml` requires no Markdown parsing; agents read structure, not prose.
-- **Alias resolution** — the glossary normalizes synonyms so agents do not treat "ML model", "model", and "trained model" as three different things.
-- **Source attribution** — every fact carries `source_ref`, so agents cite and verify rather than assert.
-- **Gap visibility** — each question records confidence and answer sources, giving `/kb build` a signal for where the layer is thin.
+- **Stable, typed entry point** - `wiki/index.yaml` requires no Markdown parsing; agents read structure, not prose.
+- **Alias resolution** - the glossary normalizes synonyms so agents do not treat "ML model", "model", and "trained model" as three different things.
+- **Source attribution** - every fact carries `source_ref`, so agents cite and verify rather than assert.
+- **Gap visibility** - each question records confidence and answer sources, giving `/kp-wiki build` a signal for where the layer is thin.
 
 ---
 
@@ -78,13 +78,13 @@ that navigation precise instead of speculative.
 project-root/
 ├── sources/              # Raw inputs: PDFs, URLs, database dumps, CSVs, etc.
 │   └── <source-id>/      # One subdirectory per source
-├── extractions/          # Structured output, one JSON per source
+├── staging/              # Structured output, one JSON per source
 │   └── <source-id>.json  # Entities, summary, dates, key facts, schema, etc.
-├── kb/                   # Knowledge base — generated and maintained by skills
+├── wiki/                   # Knowledge base - generated and maintained by skills
 │   ├── index.yaml        # Agent entry point: typed links, KB metadata, search hints
 │   ├── index.md          # Human / Obsidian entry point: navigable starting page
 │   ├── glossary.md       # Resolved terminology, aliases, cross-references
-│   ├── questions/        # Compound query knowledge (feeds back into /kb build)
+│   ├── queries/          # Compound query knowledge (feeds back into /kp-wiki build)
 │   │   └── YYYY-MM-DD-<slug>.md  # One file per question: answer + how it was generated
 │   └── <topic>.md        # One page per entity or concept (wikilinks throughout)
 └── .knowledge-project    # Project config and schema version
@@ -96,14 +96,14 @@ project-root/
 
 ```mermaid
 flowchart TD
-    A(["/init"]) --> B["sources/"]
-    C(["/ingestion add"]) --> B
-    B --> D(["/extract"])
-    D --> E["extractions/*.json"]
-    E --> F(["/kb build"])
-    G["kb/questions/"] -->|compound knowledge| F
-    F --> H["kb/"]
-    H --> I(["/query"])
+    A(["/kp-init"]) --> B["sources/"]
+    C(["/kp-source add"]) --> B
+    B --> D(["/kp-staging"])
+    D --> E["staging/*.json"]
+    E --> F(["/kp-wiki build"])
+    G["wiki/queries/"] -->|compound knowledge| F
+    F --> H["wiki/"]
+    H --> I(["/kp-query"])
     I --> G
 
     classDef skill fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -112,24 +112,24 @@ flowchart TD
     class B,E,H,G artifact
 ```
 
-Skills are shown in blue, file artifacts in green. The feedback loop from `/query` back into `/kb build` is what makes the KB improve incrementally over time.
+Skills are shown in blue, file artifacts in green. The feedback loop from `/kp-query` back into `/kp-wiki build` is what makes the KB improve incrementally over time.
 
 ---
 
 ## Skills / Commands
 
-### `init`
+### `kp-init`
 Scaffold a new knowledge project in the current directory.
 
 Creates the directory structure above, writes `.knowledge-project` with project metadata, and generates stub files so the pipeline has a known shape from the start.
 
 ```
-/init
+/kp-init
 ```
 
 ---
 
-### `ingestion`
+### `kp-source`
 Manage sources: add new ones, check for updates, track provenance.
 
 Operations:
@@ -139,62 +139,62 @@ Operations:
 - List all sources and their ingestion status
 
 ```
-/ingestion add <path-or-url>
-/ingestion status
-/ingestion check-updates
+/kp-source add <path-or-url>
+/kp-source status
+/kp-source check-updates
 ```
 
 ---
 
-### `extract`
-Run LLM-based or rule-based extractors over ingested sources and write structured output to `extractions/`.
+### `kp-staging`
+Run LLM-based or rule-based extractors over ingested sources and write structured output to `staging/`.
 
 Each extraction produces a JSON file containing:
-- `entities` — people, organizations, places, products, concepts
-- `summary` — short and long-form summaries
-- `key_facts` — discrete, citable claims
-- `dates` — timeline events with ISO dates
-- `schema` (for structured sources) — table names, column types, relationships
-- `images` (for PDFs) — extracted figures with captions
-- `source_ref` — back-pointer to the originating source
+- `entities` - people, organizations, places, products, concepts
+- `summary` - short and long-form summaries
+- `key_facts` - discrete, citable claims
+- `dates` - timeline events with ISO dates
+- `schema` (for structured sources) - table names, column types, relationships
+- `images` (for PDFs) - extracted figures with captions
+- `source_ref` - back-pointer to the originating source
 
 ```
-/extract <source-id>
-/extract --all
-/extract --model claude-opus-4-8
+/kp-staging <source-id>
+/kp-staging --all
+/kp-staging --model claude-opus-4-8
 ```
 
 ---
 
-### `query`
+### `kp-query`
 Ask a question against the knowledge base. The question, answer, and a record of
 how the answer was generated (which KB pages, extractions, or raw sources were
-used, and with what confidence) are saved to `kb/questions/` as a dated Markdown file.
+used, and with what confidence) are saved to `wiki/queries/` as a dated Markdown file.
 
-Each question file becomes part of the KB itself. On the next `/kb build` run,
+Each question file becomes part of the KB itself. On the next `/kp-wiki build` run,
 the questions directory is read as an additional input: frequently asked topics
 become first-class KB pages, low-confidence answers flag gaps for the next
-`/extract` pass, and the answer-source trail informs how entities are linked.
-This is **compound knowledge** — the KB gets better at answering related questions
+`/kp-staging` pass, and the answer-source trail informs how entities are linked.
+This is **compound knowledge** - the KB gets better at answering related questions
 over time without re-reading every source.
 
 ```
-/query "What are the main claims about X?"
-/query --gaps              # List low-confidence questions from kb/questions/
-/query --related "X"       # Show past questions related to a topic
+/kp-query "What are the main claims about X?"
+/kp-query --gaps              # List low-confidence questions from wiki/queries/
+/kp-query --related "X"       # Show past questions related to a topic
 ```
 
 ---
 
-### `kb`
-Build or update the knowledge base under `kb/` from extracted content.
+### 'wiki'
+Build or update the knowledge base under `wiki/` from extracted content.
 
-Internally runs the full synthesis pipeline: resolves entity aliases, generates `kb/glossary.md`, writes one Markdown page per entity, and produces both entry points (`kb/index.md` for Obsidian, `kb/index.yaml` for agents). Also reads `kb/questions/` — frequently asked topics become first-class pages, low-confidence answers trigger extraction gap warnings.
+Internally runs the full synthesis pipeline: resolves entity aliases, generates `wiki/glossary.md`, writes one Markdown page per entity, and produces both entry points (`wiki/index.md` for Obsidian, `wiki/index.yaml` for agents). Also reads `wiki/queries/` - frequently asked topics become first-class pages, low-confidence answers trigger extraction gap warnings.
 
 ```
-/kb build
-/kb update
-/kb add-page <topic>
+/kp-wiki build
+/kp-wiki update
+/kp-wiki add-page <topic>
 ```
 
 ---
@@ -206,16 +206,16 @@ Concept names align with [ai-research-os-workshop](https://github.com/iusztinpau
 | This project | ai-research-os-workshop |
 |---|---|
 | `sources/` | raw data / documents layer |
-| `extractions/` | processed / structured layer |
-| `kb/glossary.md` | ontology / vocabulary |
-| `kb/` | knowledge base |
-| `kb/questions/` | retrieval + feedback loop |
+| `staging/` | processed / structured layer |
+| `wiki/glossary.md` | ontology / vocabulary |
+| `wiki/` | knowledge base |
+| `wiki/queries/` | retrieval + feedback loop |
 
 ---
 
 ## Installation
 
-Skills follow the [Agent Skills](https://agentskills.io) open standard — each
+Skills follow the [Agent Skills](https://agentskills.io) open standard - each
 skill is a folder with a `SKILL.md` file, compatible with Claude Code, Cursor,
 Codex, Gemini CLI, and others.
 

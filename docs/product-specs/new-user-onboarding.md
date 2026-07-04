@@ -17,14 +17,14 @@ using only agent commands with no manual JSON editing.
 
 ## Happy path
 
-### Step 1 — Initialize the project
+### Step 1 - Initialize the project
 
 ```
 /init
 ```
 
-Creates the directory scaffolding: `sources/`, `extractions/`,
-`kb/`, `kb/questions/`, `.knowledge-project`.
+Creates the directory scaffolding: `sources/`, `staging/`,
+`wiki/`, `wiki/queries/`, `.knowledge-project`.
 
 Expected output:
 - Confirmation of directories created
@@ -33,11 +33,11 @@ Expected output:
 
 ---
 
-### Step 2 — Add sources
+### Step 2 - Add sources
 
 ```
-/ingestion add ./my-documents/report-2025.pdf
-/ingestion add https://example.com/dataset.csv
+/kp-source add ./my-documents/report-2025.pdf
+/kp-source add https://example.com/dataset.csv
 ```
 
 Each call:
@@ -46,53 +46,53 @@ Each call:
 - Writes `sources/<source-id>/.meta.json` with origin, hash, ingested-at
 
 ```
-/ingestion status
+/kp-source status
 ```
 
 Lists all sources, their type, and whether they have been extracted yet.
 
 ---
 
-### Step 3 — Extract
+### Step 3 - Extract
 
 ```
-/extract --all
+/kp-staging --all
 ```
 
 Runs the extractor over every source that does not yet have an entry in
-`extractions/`. Produces one JSON file per source.
+`staging/`. Produces one JSON file per source.
 
 For a PDF, the output includes: `entities`, `summary`, `key_facts`, `dates`,
 `images`. For a CSV, it includes: `schema`, `summary`, `key_facts`.
 
 ---
 
-### Step 4 — Build the knowledge base
+### Step 4 - Build the knowledge base
 
 ```
-/kb build
+/kp-wiki build
 ```
 
 Runs the full KB generation pipeline: merges entity mentions across all
-extractions, resolves aliases, writes `kb/glossary.md`, generates one page per
-entity, and produces `kb/index.md` (Obsidian) and `kb/index.yaml` (agents).
+extractions, resolves aliases, writes `wiki/glossary.md`, generates one page per
+entity, and produces `wiki/index.md` (Obsidian) and `wiki/index.yaml` (agents).
 
-Open the `kb/` directory in Obsidian or VS Code with the Foam extension.
+Open the `wiki/` directory in Obsidian or VS Code with the Foam extension.
 
 ---
 
-### Step 5 — Query
+### Step 5 - Query
 
 ```
-/query "What are the main findings in the 2025 report?"
+/kp-query "What are the main findings in the 2025 report?"
 ```
 
 Returns an answer grounded in the extractions. The question, answer, and a record
 of which KB pages / extractions / sources were used (and with what confidence)
-are saved to `kb/questions/2026-06-21-main-findings-2025.md`.
+are saved to `wiki/queries/2026-06-21-main-findings-2025.md`.
 
-Running `/kb build` again after accumulating questions will reorganize the KB
-around what was actually asked — frequently queried topics become first-class
+Running `/kp-wiki build` again after accumulating questions will reorganize the KB
+around what was actually asked - frequently queried topics become first-class
 pages, and low-confidence answers surface as extraction gaps.
 
 ---
@@ -102,8 +102,8 @@ pages, and low-confidence answers surface as extraction gaps.
 - `init` called in a directory that already has a `.knowledge-project` file →
   warn and ask for confirmation before overwriting.
 - `extract` called with no sources → print helpful message pointing to `ingestion add`.
-- `kb build` called with no extractions → print helpful message pointing to `extract`.
-- `kb build` called with partial extractions → build from what exists, warn about missing sources.
+- `kp-wiki build` called with no extractions → print helpful message pointing to `kp-staging`.
+- `kp-wiki build` called with partial extractions → build from what exists, warn about missing sources.
 
 ---
 

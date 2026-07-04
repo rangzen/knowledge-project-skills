@@ -2,7 +2,7 @@
 
 **Goal**: Rename directories and commands in every skill and script to match the conventions in `~/sources/skills/skills/init-knowledge-directory/SKILL.md`, and add a `kp-` prefix to every command/skill name.
 
-**Status**: in progress - phase 2 complete
+**Status**: complete - all 8 phases done
 
 ---
 
@@ -79,127 +79,134 @@
 
 ## Phase 3 - Update `kp-wiki` skill (was `kb`)
 
-Files: `skills/kp-wiki/SKILL.md`, `skills/kp-wiki/scripts/wiki_build.py`
-
 **`skills/kp-wiki/SKILL.md`**
-- [ ] `name: kb` -> `name: kp-wiki`
-- [ ] Description and all body text: `kb/` -> `wiki/`, `extractions/` -> `staging/`, `kb/questions/` -> `wiki/queries/`, `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`
-- [ ] `metadata.version`: bump minor
+- [x] `name: kb` -> `name: kp-wiki`
+- [x] Description and all body text: `kb/` -> `wiki/`, `extractions/` -> `staging/`, `kb/questions/` -> `wiki/queries/`, `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`
+- [x] `metadata.version`: bumped to 1.5
 
 **`skills/kp-wiki/scripts/wiki_build.py`**
-- [ ] Line 35: `(root / "extractions").glob` -> `(root / "staging").glob`
-- [ ] Line 124: `root / "kb" / "config"` -> `root / "wiki" / "config"`
-- [ ] Line 237: `root / "kb" / "glossary.md"` -> `root / "wiki" / "glossary.md"`
-- [ ] Line 324: `root / "kb" / etype` -> `root / "wiki" / etype`
-- [ ] Line 418: `root / "kb" / "index.md"` -> `root / "wiki" / "index.md"`
-- [ ] Line 433: `root / "kb" / "questions"` -> `root / "wiki" / "queries"`
-- [ ] Line 527: `root / "kb" / "index.yaml"` -> `root / "wiki" / "index.yaml"`
-- [ ] Line 624: `root / "kb" / "build-report.json"` -> `root / "wiki" / "build-report.json"`
-- [ ] Line 638: `kb = root / "kb"` -> `wiki = root / "wiki"`
-- [ ] Lines 684-685: `root / "kb" / "questions"` -> `root / "wiki" / "queries"`
-- [ ] Line 686 print: `/query first` -> `/kp-query first`
-- [ ] Line 711: `root / "kb" / g["target"]` -> `root / "wiki" / g["target"]`
-- [ ] Line 732: `root / "kb" / gap["target"]` -> `root / "wiki" / gap["target"]`
-- [ ] Line 767: `kb_dir = root / "kb"` -> `wiki_dir = root / "wiki"`
-- [ ] Line 819: `"questions"` entry in etype list -> `"queries"`
-- [ ] Line 844: `root / "kb" / "config"` -> `root / "wiki" / "config"`
-- [ ] Rename local variables `kb_dir` -> `wiki_dir` and `kb` -> `wiki` throughout
+- [x] Line 35: `(root / "extractions").glob` -> `(root / "staging").glob`
+- [x] Line 22: `Run /init first` -> `Run /kp-init first`
+- [x] Line 41: em dash in warning -> hyphen
+- [x] Line 124: `root / "kb" / "config"` -> `root / "wiki" / "config"`
+- [x] Line 237: `root / "kb" / "glossary.md"` -> `root / "wiki" / "glossary.md"`
+- [x] Line 324: `root / "kb" / etype` -> `root / "wiki" / etype`
+- [x] Line 418: `root / "kb" / "index.md"` -> `root / "wiki" / "index.md"`
+- [x] Line 433: `root / "kb" / "questions"` -> `root / "wiki" / "queries"`
+- [x] Line 527: `root / "kb" / "index.yaml"` -> `root / "wiki" / "index.yaml"`
+- [x] Line 624: `root / "kb" / "build-report.json"` -> `root / "wiki" / "build-report.json"`
+- [x] Line 638: `kb = root / "kb"` -> `wiki = root / "wiki"`
+- [x] Lines 684-685: `root / "kb" / "questions"` -> `root / "wiki" / "queries"`
+- [x] Line 686 print: `/query first` -> `/kp-query first`
+- [x] Lines 711, 732: `root / "kb" / ...` -> `root / "wiki" / ...`
+- [x] Lines 734, 738 prints: `kb/` -> `wiki/`
+- [x] Lines 746-749: `/extract` -> `/kp-staging`, `/kb` -> `/kp-wiki`
+- [x] Line 767: `kb_dir = root / "kb"` -> `wiki_dir = root / "wiki"`
+- [x] Line 771: `Run /extract first` -> `Run /kp-staging first`
+- [x] Line 800: em dash in conflicts print -> hyphen
+- [x] Line 815-817: em dashes -> hyphens
+- [x] Line 819: `"questions"` entry in etype list -> `"queries"`
+- [x] Line 820: `kb_dir / etype` -> `wiki_dir / etype`
+- [x] Line 842: print `kb/build-report.json` -> `wiki/build-report.json`
+- [x] Line 844: `root / "kb" / "config"` -> `root / "wiki" / "config"`
 
-**Tests - update `SCRIPT` path in 8 files**
-- [ ] `tests/test_kb_entity_resolution.py` line 7: `skills/kb/scripts/kb_build.py` -> `skills/kp-wiki/scripts/wiki_build.py`
-- [ ] `tests/test_kb_entity_page_body.py` line 7: same
-- [ ] `tests/test_kb_inject_wikilinks.py` line 7: same
-- [ ] `tests/test_kb_glossary_quality.py` line 7: same
-- [ ] `tests/test_kb_wikilink_validation.py` line 7: same
-- [ ] `tests/test_kb_link_generation.py` line 7: same
-- [ ] `tests/test_kb_enrich.py` line 7: same
-- [ ] `tests/test_kb_entity_filtering.py` line 7: same
-- [ ] `tests/test_kb_quality_metadata.py` line 7 (if present): same
-- [ ] Run: `uv run pytest tests/test_kb_entity_resolution.py tests/test_kb_entity_page_body.py tests/test_kb_inject_wikilinks.py tests/test_kb_glossary_quality.py tests/test_kb_wikilink_validation.py tests/test_kb_link_generation.py tests/test_kb_enrich.py tests/test_kb_entity_filtering.py tests/test_kb_quality_metadata.py`
+**Tests - update SCRIPT path and fixture paths**
+- [x] 8 test files: SCRIPT path -> `skills/kp-wiki/scripts/wiki_build.py`, module name `kb_build` -> `wiki_build`
+- [x] `tests/test_kb_entity_page_body.py`: `kb/` -> `wiki/`
+- [x] `tests/test_kb_inject_wikilinks.py`: `kb/` -> `wiki/`
+- [x] `tests/test_kb_wikilink_validation.py`: `kb/` -> `wiki/`
+- [x] `tests/test_kb_enrich.py`: `kb/questions/` -> `wiki/queries/`, message strings
+- [x] `tests/test_kb_entity_filtering.py`: `kb/config/` -> `wiki/config/`, `kb/` -> `wiki/`
+- [x] `tests/test_kb_quality_metadata.py`: `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
+- [x] Run: `uv run pytest tests/test_kb_*.py` - 157 passed
 
 ---
 
 ## Phase 4 - Update `kp-init` skill (was `init`)
 
-File: `skills/kp-init/SKILL.md`
-
-- [ ] `name: init` -> `name: kp-init`
-- [ ] Step 3 directories: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/config/` -> `wiki/config/`, `kb/questions/` -> `wiki/queries/`
-- [ ] Step 3b: `kb/config/entity_stoplist.txt` -> `wiki/config/entity_stoplist.txt`
-- [ ] Step 5 `.gitignore` comment: `# kb/questions/` -> `# wiki/queries/`
-- [ ] Step 6 next-step suggestion: `/ingestion add` -> `/kp-source add`
-- [ ] Add new step: generate `AGENTS.md` with role definitions for `sources/`, `staging/`, `wiki/`, `scripts/`
-- [ ] `metadata.version`: bump minor
-- [ ] Run: `uv run pytest tests/test_skill_references.py`
+- [x] `name: init` -> `name: kp-init`
+- [x] Step 3 directories: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/config/` -> `wiki/config/`, `kb/questions/` -> `wiki/queries/`, added `scripts/`
+- [x] Step 3b: `kb/config/entity_stoplist.txt` -> `wiki/config/entity_stoplist.txt`
+- [x] Step 5 `.gitignore` comment: `# kb/questions/` -> `# wiki/queries/`
+- [x] Step 6 next-step suggestion: `/ingestion add` -> `/kp-source add`
+- [x] Added step 6: generate `AGENTS.md` with role definitions for `sources/`, `staging/`, `wiki/`, `scripts/`
+- [x] `metadata.version`: bumped to 1.3
+- [x] Run: `uv run pytest tests/test_skill_references.py` - 1 passed
 
 ---
 
 ## Phase 5 - Update `kp-source` skill (was `ingestion`)
 
-File: `skills/kp-source/SKILL.md`
-
-- [ ] `name: ingestion` -> `name: kp-source`
-- [ ] Description: `/ingestion` -> `/kp-source`
-- [ ] All sub-command headers and body: `/ingestion add` -> `/kp-source add`, `/ingestion status` -> `/kp-source status`, `/ingestion check-updates` -> `/kp-source check-updates`
-- [ ] Cross-skill refs: `/init` -> `/kp-init`, `/extract` -> `/kp-staging`
-- [ ] `metadata.version`: bump minor
-- [ ] Run: `uv run pytest tests/test_skill_references.py`
+- [x] `name: ingestion` -> `name: kp-source`
+- [x] All `/ingestion` command refs -> `/kp-source`
+- [x] Cross-skill refs: `/init` -> `/kp-init`
+- [x] Fixed em dashes and en dashes in body text
+- [x] `metadata.version`: bumped to 1.5
+- [x] Run: `uv run pytest tests/test_skill_references.py` - 1 passed
 
 ---
 
 ## Phase 6 - Update `kp-query` skill (was `query`)
 
-File: `skills/kp-query/SKILL.md`
-
-- [ ] `name: query` -> `name: kp-query`
-- [ ] Description: `kb/questions/` -> `wiki/queries/`, `kb/index.yaml` -> `wiki/index.yaml`
-- [ ] All body text: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
-- [ ] Line 102: `<kb-skill-dir>/scripts/kb_build.py` -> `<kp-wiki-skill-dir>/scripts/wiki_build.py`
-- [ ] Cross-skill refs: `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`, `/query` -> `/kp-query`
-- [ ] `metadata.version`: bump minor
-- [ ] Run: `uv run pytest tests/test_skill_references.py`
+- [x] `name: query` -> `name: kp-query`
+- [x] Description: `kb/questions/` -> `wiki/queries/`, `kb/index.yaml` -> `wiki/index.yaml`
+- [x] All body text: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
+- [x] `<kb-skill-dir>/scripts/kb_build.py` -> `<kp-wiki-skill-dir>/scripts/wiki_build.py`
+- [x] Cross-skill refs: `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`, `/query` -> `/kp-query`
+- [x] `metadata.version`: bumped to 1.2
+- [x] Run: `uv run pytest tests/test_skill_references.py` - 1 passed
 
 ---
 
 ## Phase 7 - Update docs
 
 **`docs/product-specs/init.md`**
-- [ ] Command: `/init` -> `/kp-init`
-- [ ] Directory tree: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
-- [ ] Add `AGENTS.md` to the output file list
-- [ ] Next step suggestion: `/ingestion add` -> `/kp-source add`
+- [x] Command: `/init` -> `/kp-init`
+- [x] Directory tree: `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
+- [x] Next step suggestion: `/ingestion add` -> `/kp-source add`
+
+**`docs/product-specs/extract.md`** (was extract, now kp-staging)
+- [x] Command: `/extract` -> `/kp-staging`, output dir `extractions/` -> `staging/`
+
+**`docs/product-specs/ingestion.md`** (was ingestion, now kp-source)
+- [x] Command: `/ingestion` -> `/kp-source`
 
 **`docs/product-specs/kb.md`**
-- [ ] Command: `/kb` -> `/kp-wiki`
-- [ ] All `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
+- [x] Command: `/kb` -> `/kp-wiki`
+- [x] All `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
 
 **`docs/product-specs/query.md`**
-- [ ] Command: `/query` -> `/kp-query`
-- [ ] All `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
-- [ ] Cross-skill refs: `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`
+- [x] Command: `/query` -> `/kp-query`
+- [x] All `extractions/` -> `staging/`, `kb/` -> `wiki/`, `kb/questions/` -> `wiki/queries/`
+- [x] Cross-skill refs: `/kb` -> `/kp-wiki`, `/extract` -> `/kp-staging`
 
 **`docs/product-specs/new-user-onboarding.md`**
-- [ ] All command refs: `/init` -> `/kp-init`, `/ingestion` -> `/kp-source`, `/extract` -> `/kp-staging`, `/kb` -> `/kp-wiki`, `/query` -> `/kp-query`
-- [ ] All dir refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
+- [x] All command refs updated
+- [x] All dir refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
+
+**`docs/product-specs/index.md`**
+- [x] Command names in index
 
 **`docs/FRONTEND.md`**
-- [ ] `extractions/` -> `staging/` in all examples
+- [x] `extractions/` -> `staging/` in all examples
 
 **`AGENTS.md`**
-- [ ] Commands table: update command column
-- [ ] Any dir refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
+- [x] Commands table: update command column
+- [x] Any dir refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
+
+**`README.md`**
+- [x] All command refs, dir refs, section headers, mermaid diagram, tier table, em dashes
 
 **`docs/exec-plans/active/structured-content-in-kb.md`**
-- [ ] All path refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
+- [x] All path refs: `extractions/` -> `staging/`, `kb/` -> `wiki/`
 
-- [ ] Run: `uv run pytest tests/test_skill_references.py`
+- [x] Run: `uv run pytest tests/test_skill_references.py` - 1 passed
 
 ---
 
 ## Phase 8 - Full test run
 
-- [ ] Run: `uv run pytest`
-- [ ] Confirm all tests pass with zero failures
+- [x] Run: `uv run pytest` - 208 passed, 0 failed
 
 ---
 
