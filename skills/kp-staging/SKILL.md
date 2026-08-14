@@ -10,7 +10,7 @@ description: >
   Project Skills) - also activate when the user says "kps extract".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.9"
+  version: "2.0"
   project: knowledge-project-skills
 ---
 
@@ -46,10 +46,11 @@ that orients extraction. Three tiers:
 
 | Format | Script |
 |---|---|
-| PDF (`.pdf`) | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file>` |
-| DOCX (`.docx`) | `uv run <skill-dir>/scripts/preprocess_docx.py <source-file>` |
-| Excel (`.xlsx`, `.xls`) | `uv run <skill-dir>/scripts/preprocess_excel.py <source-file>` |
-| CSV (`.csv`) | `uv run <skill-dir>/scripts/preprocess_csv.py <source-file>` |
+| PDF (`.pdf`) | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file>` (primary pass — see below for the page-exact companion pass) |
+| Word (`.docx`) | `uv run <skill-dir>/scripts/preprocess_docx.py <source-file>` |
+| PowerPoint, OpenDocument, RTF, EPUB (`.pptx`, `.ppt`, `.odt`, `.ods`, `.odp`, `.rtf`, `.epub`, and variants) | `uv run <skill-dir>/scripts/preprocess_office.py <source-file>` |
+| Excel (`.xlsx`, `.xls`) | `uv run <skill-dir>/scripts/preprocess_excel.py <source-file>` (primary pass — see below for the anydoc companion pass) |
+| CSV (`.csv`) | `uv run <skill-dir>/scripts/preprocess_csv.py <source-file>` (primary pass — see below for the anydoc companion pass) |
 | JSON (`.json`) | `uv run <skill-dir>/scripts/preprocess_json.py <source-file>` |
 | YAML (`.yaml`, `.yml`) | `uv run <skill-dir>/scripts/preprocess_yaml.py <source-file>` |
 
@@ -57,6 +58,38 @@ Scripts print a JSON payload to stdout:
 ```json
 {"text": "...", "metadata": {"format": "csv", "source_ref": "...", "columns": ["name", "age"], "column_count": 2, "row_count": 150}}
 ```
+
+`preprocess_docx.py`, `preprocess_office.py`, and the primary `preprocess_pdf.py` convert
+through [anydoc](https://github.com/firecrawl/anydoc) (`firecrawl-anydoc` on PyPI) into
+structured Markdown (real headings, lists, and tables), which extracts far more reliably
+than flattened plain text.
+
+**Multiple staging passes** — when two preprocessing strategies for the same source each
+capture something the other cannot, run the extraction pipeline once per strategy and write
+both, rather than picking one and losing what only the other one has. `write_extraction.py
+--suffix <name>` writes `staging/<source-id>.<name>.json` alongside the primary
+`staging/<source-id>.json`, without touching `.meta.json` (the primary pass stays the sole
+source of truth for extraction status). `/kp-wiki build` merges every `staging/*.json` file
+by entity name regardless of how many exist per source, so extra passes need no downstream
+wiring.
+
+Three formats use this today, always primary pass unsuffixed + companion pass with `--suffix`:
+
+- **PDF**: anydoc's PDF conversion has no per-page document model (only `to_markdown`, no
+  page boundaries), so `preprocess_pdf.py` gives well-structured text with no page numbers.
+  Companion: `preprocess_pdf_pages.py` (pypdf, flat text with `[Page N]` markers), written
+  with `--suffix pages`, so key facts and dates that need a page citation still get one.
+- **Excel**: `preprocess_excel.py` (openpyxl) gives sheet/row metadata and per-sheet tables.
+  Companion: `preprocess_office.py` (anydoc), written with `--suffix anydoc`, gives the same
+  data through anydoc's Markdown serializer instead, in case its table handling catches
+  something the primary pass's cell-by-cell walk does not.
+- **CSV**: `preprocess_csv.py` passes the file through unchanged and adds a per-column type
+  profile (numeric ranges, enum values). Companion: `preprocess_office.py` (anydoc), written
+  with `--suffix anydoc`, gives the same rows as a rendered Markdown table.
+
+Always run every configured companion pass — do not skip one because the primary pass looks
+sufficient. The point of this pattern is to never have to judge in advance which pass would
+have caught something; run both and let `/kp-wiki build` merge them.
 
 **Direct read** — for formats that are already plain text (Markdown, plain text,
 Mermaid, and similar). Read the file as-is; no script needed.
@@ -73,7 +106,7 @@ performed by the agent — no separate LLM call is made.
 **Stage 3 — Write (script):** validate and persist the extraction JSON.
 
 ```
-uv run <skill-dir>/scripts/write_extraction.py --source-id <source-id> [--force]
+uv run <skill-dir>/scripts/write_extraction.py --source-id <source-id> [--force] [--suffix <name>]
 ```
 
 Pipe the extraction JSON to this script via stdin (or pass `--input <file>`).
@@ -81,6 +114,13 @@ It deduplicates entities, runs quality checks, validates against the schema,
 writes `staging/<source-id>.json`, and updates `.meta.json` with a
 structured `extraction` status object. On failure it writes
 `staging/<source-id>.failed.json` and exits non-zero.
+
+For a PDF, Excel, or CSV source, run stages 1-3 twice: once over the primary
+preprocessor's output, written with no `--suffix` (this pass owns `.meta.json`
+extraction status); once over the companion preprocessor's output (see
+"Multiple staging passes" above), written with its `--suffix` (writes
+`staging/<source-id>.<suffix>.json`, leaves `.meta.json` untouched). Both get
+merged automatically at `/kp-wiki build`.
 
 ---
 
@@ -167,25 +207,48 @@ Preserve `source_ref` and `page` per fact.
 
 #### `preprocess_pdf.py <source-file>`
 
-Extracts text from a PDF with page markers.
+Primary PDF pass. Converts to structured Markdown via anydoc (headings, lists,
+tables) but carries no page boundaries — anydoc's PDF conversion has no
+per-page document model.
 
-Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10}}`
+Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10, "paginated": false}}`
+
+#### `preprocess_pdf_pages.py <source-file>`
+
+Page-exact companion pass for PDF. Flat text (pypdf) with a `[Page N]` marker
+per page — no heading/table structure, but every fact traces to a page. Feed
+this to a second extraction pass and write it with `write_extraction.py
+--suffix pages` (see "Multiple staging passes" above).
+
+Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10, "paginated": true}}`
 
 #### `preprocess_docx.py <source-file>`
 
-Extracts paragraphs and tables from a Word document.
+Converts a Word document to structured Markdown via anydoc (headings, lists,
+tables).
 
-Output: `{"text": "...", "metadata": {"format": "docx", "source_ref": "...", "paragraphs": 42, "tables": 3}}`
+Output: `{"text": "...", "metadata": {"format": "docx", "source_ref": "..."}}`
+
+#### `preprocess_office.py <source-file>`
+
+Converts any anydoc-supported format to structured Markdown. Format is
+detected from file content, with the extension as fallback. Two roles:
+primary pass for PowerPoint, OpenDocument (`.odt`/`.ods`/`.odp`), RTF, and
+EPUB; anydoc companion pass for Excel and CSV, written with `write_extraction.py
+--suffix anydoc` (see "Multiple staging passes" above).
+
+Output: `{"text": "...", "metadata": {"format": "pptx", "source_ref": "..."}}`
 
 #### `preprocess_excel.py <source-file>`
 
-Extracts sheet contents as text tables. Metadata includes sheet count and total row count.
+Primary Excel pass. Extracts sheet contents as text tables. Metadata includes
+sheet count and total row count.
 
 Output: `{"text": "...", "metadata": {"format": "xlsx", "source_ref": "...", "sheets": 2, "rows": 500}}`
 
 #### `preprocess_csv.py <source-file>`
 
-Passes content through unchanged. Extracts column names, column count, row count, and a per-column profile: inferred type (numeric, boolean, text), min/max for numeric columns, and enum values for low-cardinality text columns.
+Primary CSV pass. Passes content through unchanged. Extracts column names, column count, row count, and a per-column profile: inferred type (numeric, boolean, text), min/max for numeric columns, and enum values for low-cardinality text columns.
 
 Output: `{"text": "<raw csv>", "metadata": {"format": "csv", "source_ref": "...", "columns": ["name", "age"], "column_count": 2, "row_count": 150, "profile": [...]}}`
 
@@ -218,6 +281,10 @@ extraction JSON (from stdin or `--input`), writes it to
 ```
 Migration note: sources with legacy `extracted: true` in `.meta.json` are
 treated as `status: "complete", quality: "unknown"` by downstream tools.
+
+With `--suffix <name>`, writes `staging/<source-id>.<name>.json` instead and
+leaves `.meta.json` untouched — for a second independent extraction pass over
+the same source (see "Multiple staging passes" above).
 
 | Flag | Effect |
 |---|---|

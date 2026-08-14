@@ -1,29 +1,22 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["python-docx>=1.1"]
+# dependencies = ["firecrawl-anydoc"]
 # ///
-"""DOCX preprocessor: extract text from a Word document and emit LLM-ready JSON.
+"""DOCX preprocessor: convert a Word document to structured Markdown via anydoc.
 
 Usage:
   uv run scripts/preprocess_docx.py <source-file>
 
 Outputs a single JSON object to stdout:
-  {"text": "...", "metadata": {"format": "docx", "source_ref": "<path>", "paragraphs": N, "tables": N}}
+  {"text": "...", "metadata": {"format": "docx", "source_ref": "<path>"}}
 """
 
 import json
 import sys
 from pathlib import Path
 
-import docx
-
-
-def _table_to_text(table) -> str:
-    rows = []
-    for row in table.rows:
-        rows.append(" | ".join(cell.text.strip() for cell in row.cells))
-    return "\n".join(rows)
+import anydoc
 
 
 def main():
@@ -36,31 +29,17 @@ def main():
         print(f"Error: {source_file} not found", file=sys.stderr)
         sys.exit(1)
 
-    doc = docx.Document(str(source_file))
-    parts: list[str] = []
-    para_count = 0
-
-    for block in doc.element.body:
-        tag = block.tag.split("}")[-1] if "}" in block.tag else block.tag
-        if tag == "p":
-            para = docx.text.paragraph.Paragraph(block, doc)
-            text = para.text.strip()
-            if text:
-                parts.append(text)
-                para_count += 1
-        elif tag == "tbl":
-            tbl = docx.table.Table(block, doc)
-            parts.append(_table_to_text(tbl))
-
-    table_count = len(doc.tables)
+    try:
+        markdown = anydoc.to_markdown(str(source_file))
+    except anydoc.ConvertError as exc:
+        print(f"Error: anydoc could not convert {source_file}: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     print(json.dumps({
-        "text": "\n\n".join(parts),
+        "text": markdown,
         "metadata": {
             "format": "docx",
             "source_ref": str(source_file),
-            "paragraphs": para_count,
-            "tables": table_count,
         },
     }))
 

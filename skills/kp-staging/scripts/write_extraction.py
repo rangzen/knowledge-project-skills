@@ -15,8 +15,14 @@ entities, runs quality checks, validates against the schema, writes
 staging/<source-id>.json, and updates sources/<source-id>/.meta.json with
 a structured extraction status object.
 
-On failure: writes staging/<source-id>.failed.json and exits non-zero.
-Never overwrites a good extraction without --force.
+--suffix <name> writes staging/<source-id>.<name>.json instead, for a second
+independent extraction pass over the same source (e.g. a page-exact
+companion pass alongside the primary structured one - see kp-staging
+SKILL.md). A suffixed run does not touch .meta.json: the unsuffixed primary
+pass stays the sole source of truth for a source's extraction status.
+
+On failure: writes staging/<source-id>[.<suffix>].failed.json and exits
+non-zero. Never overwrites a good extraction without --force.
 """
 
 import argparse
@@ -118,11 +124,12 @@ def quality_level(quality: dict) -> str:
     return "warning"
 
 
-def write_failure(staging_dir: Path, source_id: str, error: str) -> None:
-    good = staging_dir / f"{source_id}.json"
+def write_failure(staging_dir: Path, source_id: str, error: str, suffix: str | None) -> None:
+    stem = f"{source_id}.{suffix}" if suffix else source_id
+    good = staging_dir / f"{stem}.json"
     if good.exists():
         return
-    failed = staging_dir / f"{source_id}.failed.json"
+    failed = staging_dir / f"{stem}.failed.json"
     failed.write_text(json.dumps({
         "source_id": source_id,
         "failed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -135,15 +142,19 @@ def main():
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--input", help="Path to extraction JSON (default: stdin)")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--suffix", default=None,
+                        help="Write staging/<source-id>.<suffix>.json instead, for a second "
+                             "independent extraction pass. Does not touch .meta.json.")
     args = parser.parse_args()
 
     root = project_root()
     staging_dir = root / "staging"
     staging_dir.mkdir(exist_ok=True)
-    output_path = staging_dir / f"{args.source_id}.json"
+    stem = f"{args.source_id}.{args.suffix}" if args.suffix else args.source_id
+    output_path = staging_dir / f"{stem}.json"
 
     if output_path.exists() and not args.force:
-        print(f"Skipped: staging/{args.source_id}.json already exists (use --force to re-run).",
+        print(f"Skipped: staging/{stem}.json already exists (use --force to re-run).",
               file=sys.stderr)
         sys.exit(0)
 
@@ -160,14 +171,14 @@ def main():
     except json.JSONDecodeError as exc:
         msg = f"invalid JSON: {exc}"
         print(f"Error: {msg}", file=sys.stderr)
-        write_failure(staging_dir, args.source_id, msg)
+        write_failure(staging_dir, args.source_id, msg, args.suffix)
         sys.exit(1)
 
     errors = validate(data)
     if errors:
         msg = "schema validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
         print(f"Error: {msg}", file=sys.stderr)
-        write_failure(staging_dir, args.source_id, msg)
+        write_failure(staging_dir, args.source_id, msg, args.suffix)
         sys.exit(1)
 
     data["entities"], removed = deduplicate_entities(data.get("entities", []))
@@ -177,19 +188,21 @@ def main():
 
     output_path.write_text(json.dumps(data, indent=2))
 
-    extracted_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    meta = json.loads(meta_path.read_text())
-    meta.pop("extracted", None)
-    meta["extraction"] = {
-        "status": "complete",
-        "extractor_version": EXTRACTOR_VERSION,
-        "extracted_at": extracted_at,
-        "quality": quality_level(quality),
-    }
-    meta_path.write_text(json.dumps(meta, indent=2))
+    if not args.suffix:
+        extracted_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        meta = json.loads(meta_path.read_text())
+        meta.pop("extracted", None)
+        meta["extraction"] = {
+            "status": "complete",
+            "extractor_version": EXTRACTOR_VERSION,
+            "extracted_at": extracted_at,
+            "quality": quality_level(quality),
+        }
+        meta_path.write_text(json.dumps(meta, indent=2))
 
     entity_count = len(data["entities"])
-    print(f"OK: {args.source_id} - {entity_count} entities - {data['summary']['short']}")
+    label = f"{args.source_id}.{args.suffix}" if args.suffix else args.source_id
+    print(f"OK: {label} - {entity_count} entities - {data['summary']['short']}")
     if removed:
         print(f"  Deduplication: removed {removed} duplicate {'entity' if removed == 1 else 'entities'}")
     if quality["flags"]:
