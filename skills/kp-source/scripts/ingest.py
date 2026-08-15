@@ -163,6 +163,12 @@ def main():
     parser.add_argument("--source-id", default=None)
     parser.add_argument("--origin", default=None)
     parser.add_argument("--check-update", action="store_true")
+    parser.add_argument("--language", default=None,
+                        help="Transcript/content language code (e.g. 'fr'). "
+                             "Currently used for YouTube sources.")
+    parser.add_argument("--is-generated", choices=["true", "false"], default=None,
+                        help="Whether the language content was auto-generated "
+                             "(e.g. YouTube auto-captions vs. manual captions).")
     parser.add_argument("--list-dir", metavar="DIR", default=None,
                         help="Recursively list supported files with duplicate detection")
     args = parser.parse_args()
@@ -235,6 +241,10 @@ def main():
         "extraction": {"status": "pending"},
         "stale": False,
     }
+    if args.language is not None:
+        meta["language"] = args.language
+    if args.is_generated is not None:
+        meta["is_generated"] = args.is_generated == "true"
     meta_path.write_text(json.dumps(meta, indent=2))
     print(json.dumps(meta, indent=2))
 

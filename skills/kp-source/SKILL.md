@@ -9,7 +9,7 @@ description: >
   activate when the user says "kps ingestion" or "kps ingest".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "1.5"
+  version: "1.6"
   project: knowledge-project-skills
 ---
 
@@ -62,17 +62,30 @@ to the project.
 2. Create `sources/<source-id>/`.
 3. Fetch content into `sources/<source-id>/`:
    - **YouTube URL** (`youtube.com/watch?v=` or `youtu.be/`): run
-     `uv run <skill-dir>/scripts/fetch_youtube.py <url> sources/<source-id>/`.
+     `uv run <skill-dir>/scripts/fetch_youtube.py <url> sources/<source-id>/`
+     (add `--language <code>` or `--language <code1,code2>` if the user
+     requested a specific subtitle language or priority order, e.g.
+     `--language fr` or `--language en,fr`).
      This writes `transcript.txt` (timestamped plain text, one line per caption)
      and attempts to write `<title>.info.json` via yt-dlp (best-effort).
      The primary content file for extraction is `transcript.txt`.
+     Without `--language`, the first available transcript is used
+     (manually-created tracks are preferred over auto-generated ones), so
+     non-English videos work with no extra flags. If none of the requested
+     languages are available, it falls back to any available transcript.
+     The script's JSON stdout includes `language` and `is_generated` for the
+     transcript it selected - capture these to pass to `ingest.py` in the
+     next step.
    - **Other URL**: download with `curl -L -o <filename>`.
    - **Local file**: copy into the directory.
-4. Run `<skill-dir>/scripts/ingest.py --source-id <source-id> --origin <path-or-url>`:
+4. Run `<skill-dir>/scripts/ingest.py --source-id <source-id> --origin <path-or-url>`
+   (for YouTube sources, add `--language <code> --is-generated <true|false>`
+   using the values captured from `fetch_youtube.py`'s JSON stdout):
    - Computes SHA-256 hash.
    - Detects type (`pdf`, `csv`, `url`, `db-dump`, `markdown`, `image`, `other`).
    - Reads page count for PDFs.
-   - Writes `sources/<source-id>/.meta.json`.
+   - Writes `sources/<source-id>/.meta.json`, including `language` /
+     `is_generated` when provided.
 5. If `--sensitive`: append `sources/<source-id>/` to `.gitignore`.
 6. Print the assigned `source-id` and confirm.
 
@@ -87,9 +100,13 @@ to the project.
   "page_count": 42,
   "sensitive": false,
   "extraction": {"status": "pending"},
-  "stale": false
+  "stale": false,
+  "language": "fr",
+  "is_generated": false
 }
 ```
+`language` and `is_generated` are only present for sources where the content
+language was explicitly selected (currently YouTube transcripts).
 #### `status`
 
 For each directory in `sources/`, read `.meta.json` and print a table:
@@ -114,13 +131,14 @@ For each source in `sources/`:
 | `--sensitive` | Adds `sources/<source-id>/` to `.gitignore`. |
 | `--threshold N` | Override the file-count confirmation threshold (default 50). Set to 0 to disable. |
 | `--yes` | Skip the directory file-count confirmation prompt. |
+| `--language <code>` | YouTube URLs only. Requests a subtitle language (or priority list, e.g. `en,fr`). Falls back to any available transcript if none match. |
 
 ---
 
 ### Edge cases
 
 - URL download fails: report the error, do not create a partial `sources/<source-id>/`.
-- YouTube transcript unavailable (private video, no captions): `fetch_youtube.py` exits non-zero; report the error and do not create a partial source directory.
+- YouTube transcript unavailable (private video, no captions at all, requested `--language` not found and no other transcript exists): `fetch_youtube.py` exits non-zero; report the error and do not create a partial source directory.
 - File not found: report clearly, suggest checking the path.
 - Project not initialized (`.knowledge-project` missing): prompt the user to run `/kp-init` first.
 - Empty directory: report zero files found.
