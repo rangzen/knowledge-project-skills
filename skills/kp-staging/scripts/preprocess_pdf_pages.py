@@ -17,38 +17,81 @@ Outputs a single JSON object to stdout:
   {"text": "...", "metadata": {"format": "pdf", "source_ref": "<path>", "pages": N, "paginated": true}}
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
 
 import pypdf
 
+from pdf_ocr import (
+    DEFAULT_OCR_CACHE_DIR,
+    DEFAULT_OCR_LANGUAGE,
+    OcrDependencyError,
+    OcrProcessingError,
+    OcrSettings,
+    create_derivative,
+    existing_derivative,
+    metadata as ocr_metadata,
+)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Extract PDF text with page markers.")
+    parser.add_argument("source_file")
+    parser.add_argument("--ocr", choices=("auto", "off", "force"), default="auto")
+    parser.add_argument("--ocr-language", default=DEFAULT_OCR_LANGUAGE)
+    parser.add_argument("--ocr-cache-dir", default=DEFAULT_OCR_CACHE_DIR)
+    return parser.parse_args()
+
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: preprocess_pdf_pages.py <source-file>", file=sys.stderr)
-        sys.exit(1)
-
-    source_file = Path(sys.argv[1])
+    args = parse_args()
+    source_file = Path(args.source_file)
     if not source_file.exists():
         print(f"Error: {source_file} not found", file=sys.stderr)
         sys.exit(1)
 
-    reader = pypdf.PdfReader(str(source_file))
+    try:
+        settings = OcrSettings.from_args(args.ocr, args.ocr_language, args.ocr_cache_dir)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    input_file = source_file
+    extra_metadata: dict[str, object] = {}
+    try:
+        derivative = (
+            create_derivative(source_file, settings)
+            if settings.mode == "force"
+            else existing_derivative(source_file, settings)
+            if settings.mode == "auto"
+            else None
+        )
+    except (OcrDependencyError, OcrProcessingError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if derivative is not None:
+        input_file, source_hash = derivative[:2]
+        extra_metadata = ocr_metadata(input_file, source_hash, settings)
+
+    reader = pypdf.PdfReader(str(input_file))
     pages = []
     for i, page in enumerate(reader.pages):
         text = page.extract_text()
         if text:
             pages.append(f"[Page {i + 1}]\n{text}")
 
+    metadata = {
+        "format": "pdf",
+        "source_ref": str(source_file),
+        "pages": len(reader.pages),
+        "paginated": True,
+        **extra_metadata,
+    }
     print(json.dumps({
         "text": "\n\n".join(pages),
-        "metadata": {
-            "format": "pdf",
-            "source_ref": str(source_file),
-            "pages": len(reader.pages),
-            "paginated": True,
-        },
+        "metadata": metadata,
     }))
 
 

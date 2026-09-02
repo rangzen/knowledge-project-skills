@@ -14,6 +14,13 @@ Some formats need preprocessing scripts to surface text and metadata a plain rea
 would miss (page boundaries, table structure, cell types). For those, skills ship
 Python scripts in their `scripts/` directory. Plain-text formats are read directly.
 
+For PDFs containing scanned pages, `kp-staging` can create a local OCR derivative
+on demand. It uses OCRmyPDF, Tesseract, and Ghostscript only on the local machine;
+the original source is left unchanged. These derivatives live in `.kp-cache/ocr`,
+are ignored by Git, and may contain all source text, so handle the cache as sensitive
+data whenever the source is sensitive. See `skills/kp-staging/SKILL.md` for the OCR
+options and platform prerequisites.
+
 Skills target Claude Code, Cursor, Codex, and compatible assistants.
 
 [AI Research OS](https://github.com/iusztinpaul/ai-research-os-workshop) uses very

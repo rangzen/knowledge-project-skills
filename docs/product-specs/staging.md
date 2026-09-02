@@ -22,6 +22,7 @@ downstream skills ('wiki', `query`) can depend on a stable contract.
 /kp-staging --all --force                  # re-extract even if extraction exists
 /kp-staging --model claude-opus-4-8        # override default model
 /kp-staging --all --missing-only           # skip sources with existing extractions
+/kp-staging <source-id> --ocr auto         # local OCR fallback for scanned PDF pages
 ```
 
 ---
@@ -132,6 +133,15 @@ For **PDFs with figures**, `images` is populated:
   Provenance (`source_ref`, `page`) is preserved per chunk.
 - `schema_version` in the output must match the version defined in
   `write_extraction.py`. Downstream skills check this field.
+- PDF preprocessing accepts `--ocr auto|off|force` (default `auto`),
+  `--ocr-language <codes>` (default `eng`), and `--ocr-cache-dir <path>`
+  (default `.kp-cache/ocr`). In `auto` mode, OCRmyPDF runs only when the
+  structured converter reports that OCR is required. Derivatives are local,
+  Git-ignored, and keyed by the source hash plus OCR configuration; raw files
+  under `sources/` are never modified.
+- OCR requires local `ocrmypdf`, Tesseract with each selected language pack,
+  and Ghostscript. The cache can contain the source's full text and must be
+  treated as sensitive when the original source is sensitive.
 
 ---
 
