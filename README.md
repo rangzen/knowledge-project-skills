@@ -257,6 +257,17 @@ are listed in each skill's `scripts/requirements.txt`.
 
 ---
 
+## Repository validation
+
+Validate that every Markdown link in a skill resolves within that skill's
+installable directory:
+
+```bash
+python3 scripts/validate_skill_links.py
+```
+
+---
+
 ## Status
 
 Early development. Contributions and issue reports welcome.
