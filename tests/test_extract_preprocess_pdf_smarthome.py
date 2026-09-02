@@ -11,7 +11,7 @@ def test_page_count():
 
 
 def test_all_page_markers_present():
-    result = run_preprocessor("preprocess_pdf.py", FIXTURE)
+    result = run_preprocessor("preprocess_pdf_pages.py", FIXTURE)
     text = result["text"]
     for i in range(1, 6):
         assert f"[Page {i}]" in text

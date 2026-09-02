@@ -10,5 +10,8 @@ uv.lock
 # pytest
 .pytest_cache/
 
+# Local OCR derivatives can contain all text from source PDFs.
+.kp-cache/
+
 # OS
 .DS_Store

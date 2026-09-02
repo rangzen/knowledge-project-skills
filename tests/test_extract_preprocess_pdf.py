@@ -17,6 +17,6 @@ def test_pdf_text_extracted():
 
 
 def test_pdf_page_markers():
-    result = run_preprocessor("preprocess_pdf.py", DATA_DIR / "pdf/sample.pdf")
+    result = run_preprocessor("preprocess_pdf_pages.py", DATA_DIR / "pdf/sample.pdf")
     assert "[Page 1]" in result["text"]
     assert "[Page 2]" in result["text"]

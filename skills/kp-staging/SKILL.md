@@ -10,7 +10,7 @@ description: >
   Project Skills) - also activate when the user says "kps extract".
 compatibility: Requires Python 3.11+ and uv
 metadata:
-  version: "2.0"
+  version: "2.1"
   project: knowledge-project-skills
 ---
 
@@ -46,7 +46,7 @@ that orients extraction. Three tiers:
 
 | Format | Script |
 |---|---|
-| PDF (`.pdf`) | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file>` (primary pass — see below for the page-exact companion pass) |
+| PDF (`.pdf`) | `uv run <skill-dir>/scripts/preprocess_pdf.py <source-file> [--ocr auto|off|force] [--ocr-language eng] [--ocr-cache-dir .kp-cache/ocr]` (primary pass — see below for the page-exact companion pass) |
 | Word (`.docx`) | `uv run <skill-dir>/scripts/preprocess_docx.py <source-file>` |
 | PowerPoint, OpenDocument, RTF, EPUB (`.pptx`, `.ppt`, `.odt`, `.ods`, `.odp`, `.rtf`, `.epub`, and variants) | `uv run <skill-dir>/scripts/preprocess_office.py <source-file>` |
 | Excel (`.xlsx`, `.xls`) | `uv run <skill-dir>/scripts/preprocess_excel.py <source-file>` (primary pass — see below for the anydoc companion pass) |
@@ -78,7 +78,9 @@ Three formats use this today, always primary pass unsuffixed + companion pass wi
 - **PDF**: anydoc's PDF conversion has no per-page document model (only `to_markdown`, no
   page boundaries), so `preprocess_pdf.py` gives well-structured text with no page numbers.
   Companion: `preprocess_pdf_pages.py` (pypdf, flat text with `[Page N]` markers), written
-  with `--suffix pages`, so key facts and dates that need a page citation still get one.
+  with `--suffix pages`, so key facts and dates that need a page citation still get one. When
+  the primary pass applies OCR, run the companion with the same OCR options; it reuses the
+  cached derivative and supplies page-citable OCR text without changing page numbers.
 - **Excel**: `preprocess_excel.py` (openpyxl) gives sheet/row metadata and per-sheet tables.
   Companion: `preprocess_office.py` (anydoc), written with `--suffix anydoc`, gives the same
   data through anydoc's Markdown serializer instead, in case its table handling catches
@@ -90,6 +92,29 @@ Three formats use this today, always primary pass unsuffixed + companion pass wi
 Always run every configured companion pass — do not skip one because the primary pass looks
 sufficient. The point of this pattern is to never have to judge in advance which pass would
 have caught something; run both and let `/kp-wiki build` merge them.
+
+**Local PDF OCR fallback** — `preprocess_pdf.py` uses AnyDoc first. With the default
+`--ocr auto`, it invokes local OCR only when AnyDoc identifies an OCR-required conversion
+failure. `--ocr off` preserves the AnyDoc-only behavior; `--ocr force` creates the local OCR
+derivative before conversion. `--ocr-language` accepts Tesseract language codes separated by
+`+` or commas (for example `eng+fra`). `--ocr-cache-dir` defaults to `.kp-cache/ocr`.
+
+OCR derivatives are keyed by the source SHA-256 and normalized OCR configuration, so a changed
+source or language selection produces a new derivative. They preserve the original `source_ref`
+in preprocessor output, are never written to `sources/` or `staging/`, and are ignored by Git.
+They may contain all source text: treat `.kp-cache/ocr` as sensitive whenever the source is
+sensitive. The fallback is entirely local and never uploads PDFs.
+
+The local fallback needs the `ocrmypdf`, `tesseract`, and `gs` executables, plus each requested
+Tesseract language pack. On Ubuntu/Debian, install them with:
+
+```bash
+sudo apt install ocrmypdf tesseract-ocr-eng tesseract-ocr-fra ghostscript
+```
+
+`uv` runs the preprocessor but cannot install these platform dependencies. A Python-managed
+OCRmyPDF (`uv tool install ocrmypdf`) still needs the system Tesseract and Ghostscript packages.
+If the dependencies are unavailable, use `--ocr off` to retain the original behavior.
 
 **Direct read** — for formats that are already plain text (Markdown, plain text,
 Mermaid, and similar). Read the file as-is; no script needed.
@@ -209,15 +234,19 @@ Preserve `source_ref` and `page` per fact.
 
 Primary PDF pass. Converts to structured Markdown via anydoc (headings, lists,
 tables) but carries no page boundaries — anydoc's PDF conversion has no
-per-page document model.
+per-page document model. With `--ocr auto` (the default), it produces a local OCR derivative
+only after an OCR-required AnyDoc failure; `--ocr force` always does so and `--ocr off` disables
+the fallback. OCR output preserves the original `source_ref` and adds `ocr_applied`,
+`ocr_engine`, `ocr_languages`, `ocr_cache_path`, and `ocr_source_hash` metadata.
 
 Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10, "paginated": false}}`
 
 #### `preprocess_pdf_pages.py <source-file>`
 
 Page-exact companion pass for PDF. Flat text (pypdf) with a `[Page N]` marker
-per page — no heading/table structure, but every fact traces to a page. Feed
-this to a second extraction pass and write it with `write_extraction.py
+per page — no heading/table structure, but every fact traces to a page. In `auto` mode it reuses
+the matching OCR derivative created by the primary pass; `force` creates one and `off` uses the
+original PDF. Feed this to a second extraction pass and write it with `write_extraction.py
 --suffix pages` (see "Multiple staging passes" above).
 
 Output: `{"text": "...", "metadata": {"format": "pdf", "source_ref": "...", "pages": 10, "paginated": true}}`
