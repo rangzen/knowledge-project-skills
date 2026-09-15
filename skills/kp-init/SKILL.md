@@ -10,7 +10,7 @@ description: >
   name for this project (Knowledge Project Skills) - also activate when
   the user says "kps init".
 metadata:
-  version: "1.3"
+  version: "1.4"
   project: knowledge-project-skills
 ---
 
@@ -29,7 +29,9 @@ knowledge project in the current directory.
 
 Run `uv --version`.
 - If the command fails or is not found: stop and tell the user to install uv
-  (`curl -LsSf https://astral.sh/uv/install.sh | sh`). Do not proceed.
+  using their operating system's package manager or the verified installation
+  instructions published by the uv project. Do not download and execute a
+  remote installer from the skill instructions. Do not proceed.
 
 **2. Check for existing project**
 
