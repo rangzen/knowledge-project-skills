@@ -1,0 +1,31 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check skill security policy
+        run: python3 scripts/security_audit.py
+      - name: Install audit tooling
+        run: >-
+          python3 -m pip install --disable-pip-version-check --no-cache-dir
+          pip-audit==2.9.0 cyclonedx-bom==6.7.1
+      - name: Install declared development dependencies
+        run: python3 -m pip install --disable-pip-version-check '.[dev]'
+      - name: Audit installed dependencies
+        run: pip-audit --local --strict
+      - name: Generate CycloneDX SBOM
+        run: >-
+          cyclonedx-py environment
+          --output-file "$RUNNER_TEMP/knowledge-project-skills.cdx.json"
+      - name: Validate SBOM
+        run: python3 -m json.tool "$RUNNER_TEMP/knowledge-project-skills.cdx.json" > /dev/null
